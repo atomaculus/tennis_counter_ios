@@ -55,20 +55,20 @@ Resultado:
 
 - [x] Watch app instala y abre.
 - [x] HealthKit prompt no produce crash.
-- [x] Pantalla principal se renderiza bien, con ajuste de orden visual pendiente en QA-006.
+- [x] Pantalla principal se renderiza bien, con ajuste de orden visual confirmado en QA-006.
 - [x] Sumar punto A/B funciona.
 - [x] Undo A/B funciona.
 - [x] Timer start/pause/resume funciona.
 - [x] Reset game funciona.
 - [x] Reset match funciona.
 - [x] Finish match funciona.
-- [ ] Sync status se entiende.
+- [ ] Sync status se entiende para testing. Pendiente revisar copy final para usuario en QA-008.
 - [x] Lado de saque inicial arranca en `Right`.
 
 Resultado:
 
-- Estado: funcional aprobado para scorer local. Queda pendiente sync.
-- Bugs encontrados: QA-006.
+- Estado: funcional aprobado para scorer local. Queda pendiente revisar copy final de status.
+- Bugs encontrados: QA-006, QA-008.
 
 ## Sesion 3 - Sync simuladores iPhone/Watch
 
@@ -77,15 +77,15 @@ Resultado:
 - [x] Watch aplica nombres/formato.
 - [x] Watch envia live score.
 - [x] iPhone muestra live score read-only.
-- [ ] Timer live Watch -> iPhone actualiza continuamente y respeta pausa/reanudacion.
-- [ ] Watch termina partido.
-- [ ] iPhone guarda o rechaza segun premium.
-- [ ] No hay duplicados por reenvio.
+- [x] Timer live Watch -> iPhone actualiza continuamente y respeta pausa/reanudacion.
+- [x] Watch termina partido.
+- [x] iPhone guarda partido terminado en History.
+- [x] No hay duplicados por reenvio: el boton queda en `Saved` y no permite reenviar manualmente el mismo partido.
 
 Resultado:
 
-- Estado: sync basico aprobado en simuladores emparejados. Pendiente probar timer live continuo y cierre desde Watch.
-- Bugs encontrados: QA-007.
+- Estado: sync basico aprobado en simuladores emparejados.
+- Bugs encontrados: QA-007, QA-008.
 
 ## Bugs
 
@@ -156,7 +156,7 @@ Pasos: abrir contador en Watch.
 Resultado esperado: orden visual solicitado por producto: sets/games/timer arriba, luego score del game actual, luego server y serve side.
 Resultado real: el score del game actual estaba arriba de sets/games/timer.
 Severidad: baja.
-Estado: corregido en codigo. `Watch/PlayceWatchApp.swift` ahora muestra sets/games/timer antes del score del game actual. Pendiente confirmacion visual del usuario en simulador.
+Estado: corregido y confirmado por QA. `Watch/PlayceWatchApp.swift` ahora muestra sets/games/timer antes del score del game actual.
 
 ### QA-007
 
@@ -168,10 +168,20 @@ Severidad: media.
 Estado: corregido y confirmado por QA. Watch emite live score al cambiar `elapsedSeconds` mientras el timer corre, y el payload ahora incluye `isTimerRunning`/`hasTimerStarted` para que iPhone muestre running/paused correctamente.
 Nota posterior: en modo broadcast, el timer del iPhone es solo display. Se cambio la UI para mostrar un pill de estado `Running`/`Paused`/`Not started` en vez de un boton accionable `Pause`/`Resume`.
 
+### QA-008
+
+Ambiente: Apple Watch Simulator + sync con iPhone Simulator.
+Pasos: guardar partido terminado desde Watch y observar status bar.
+Resultado esperado: durante testing, el status ayuda a confirmar sync; para usuario final, no deberia exponer mensajes tecnicos internos.
+Resultado real: la barra muestra mensajes como `ACK inserted`, utiles para QA pero demasiado tecnicos para producto final.
+Severidad: baja.
+Estado: decision de producto. Mantener por ahora para testing; antes de release revisar copy/visibilidad de status tecnico. Producto valora `broadcasting` como estado visible, pero no mensajes internos tipo ACK.
+
 ## Decisiones de producto pendientes
 
 - Decidir si el timer visible del Apple Watch pasa a ser comportamiento oficial y luego se replica en Wear OS. Producto lo marco como deseable para Android/Wear.
 - Revisar en Android/Wear si el timer live tiene el mismo problema de actualizar el telefono solo con eventos discretos; si ocurre, replicar timer live continuo.
+- Evaluar status visible de `broadcasting` en Android/Wear como comportamiento oficial, evitando exponer mensajes tecnicos internos tipo ACK al usuario final.
 - Evaluar replicar en Android mobile el preview de share card antes de compartir.
 - Evaluar replicar en Android mobile el boton de eliminar partido desde detalle.
 - Decidir si iOS/watchOS mantiene botones Undo o adopta long press como Android/Wear.

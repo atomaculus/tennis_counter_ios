@@ -26,6 +26,13 @@ Este documento lista decisiones nacidas o refinadas en iOS/watchOS que podrian p
 - Android candidato: revisar si mobile deberia exponer un status de sync mas visible y consistente.
 - Estado: candidato a comportamiento oficial, pendiente ajustar copy para no confundir `ready` con Watch realmente conectado.
 
+### Status de broadcasting en reloj
+
+- iOS/watchOS: la barra de estado del Watch ayuda durante QA y el estado `broadcasting` comunica bien que el reloj esta enviando live score.
+- Android/Wear OS candidato: incorporar un status visible similar para broadcasting si no existe hoy.
+- Cuidado de producto: evitar exponer mensajes tecnicos internos al usuario final, por ejemplo `ACK inserted`. Mantener esos mensajes solo como debug/testing o reemplazarlos por copy orientado a usuario antes de release.
+- Estado: candidato a comportamiento oficial, con copy final pendiente.
+
 ### Server y serve side en contador mobile
 
 - iOS: el contador mobile muestra servidor actual y lado de saque.
