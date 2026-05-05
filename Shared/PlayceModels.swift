@@ -118,7 +118,7 @@ struct MatchSnapshot: Codable, Hashable {
     }
 
     var serveStartsOnLeftSide: Bool {
-        (playerA.points + playerB.points).isMultiple(of: 2)
+        !(playerA.points + playerB.points).isMultiple(of: 2)
     }
 }
 
@@ -246,6 +246,8 @@ struct LiveMatchPayload: Codable, Hashable {
     var pointLabelA: String
     var pointLabelB: String
     var elapsedSeconds: Int
+    var isTimerRunning: Bool
+    var hasTimerStarted: Bool
     var isMatchActive: Bool
     var lastScoredPlayer: String
     var timestamp: Date
@@ -266,6 +268,8 @@ struct LiveMatchPayload: Codable, Hashable {
         self.pointLabelA = snapshot.pointLabel(for: .a)
         self.pointLabelB = snapshot.pointLabel(for: .b)
         self.elapsedSeconds = snapshot.elapsedSeconds
+        self.isTimerRunning = snapshot.isTimerRunning
+        self.hasTimerStarted = snapshot.hasTimerStarted
         self.isMatchActive = isMatchActive
         self.lastScoredPlayer = lastScoredPlayer
         self.timestamp = timestamp
@@ -290,6 +294,12 @@ struct PendingFinishedMatch: Codable, Hashable {
     var attemptCount: Int = 0
     var nextRetryAt: Date = Date()
     var lastStatus: String = "Pending"
+}
+
+enum WatchConfigSendResult {
+    case sent
+    case queued
+    case unavailable
 }
 
 enum PlayceFormatting {

@@ -101,7 +101,7 @@ struct CounterTabView: View {
                             onSendToWatch: { nameA, nameB, preset in
                                 controller.setPlayerNames(nameA, nameB)
                                 controller.setMatchFormat(preset.format)
-                                connectivity.sendMatchConfig(
+                                return connectivity.sendMatchConfig(
                                     playerAName: controller.playerAName,
                                     playerBName: controller.playerBName,
                                     format: preset.format
@@ -235,7 +235,7 @@ struct PremiumStatusMessageView: View {
                     .font(.footnote)
                     .foregroundStyle(PlaycePalette.textSecondary)
             }
-            if let message = premiumStore.message {
+            if !premiumStore.isPremiumUnlocked, let message = premiumStore.message {
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(PlaycePalette.textSecondary)
@@ -246,13 +246,14 @@ struct PremiumStatusMessageView: View {
 
 struct MatchSetupCard: View {
     let onApplyConfig: (String, String, FormatPreset) -> Void
-    let onSendToWatch: (String, String, FormatPreset) -> Void
+    let onSendToWatch: (String, String, FormatPreset) -> WatchConfigSendResult
 
     @State private var isExpanded = false
     @State private var playerAName = ""
     @State private var playerBName = ""
     @State private var selectedPreset: FormatPreset = .standard
-    @State private var sentToWatch = false
+    @State private var watchSendState = WatchSendState.idle
+    @State private var appliedLocally = false
 
     var body: some View {
         PlayceCard {
@@ -285,7 +286,9 @@ struct MatchSetupCard: View {
                             .foregroundStyle(PlaycePalette.textSecondary)
                         HStack(spacing: 10) {
                             PlayceNameField(placeholder: "Player A", text: $playerAName)
+                                .onChange(of: playerAName) { _, _ in resetConfigFeedback() }
                             PlayceNameField(placeholder: "Player B", text: $playerBName)
+                                .onChange(of: playerBName) { _, _ in resetConfigFeedback() }
                         }
 
                         Text("MATCH FORMAT")
@@ -298,25 +301,70 @@ struct MatchSetupCard: View {
                                     isSelected: selectedPreset == preset,
                                     action: {
                                         selectedPreset = preset
-                                        sentToWatch = false
+                                        resetConfigFeedback()
                                     }
                                 )
                             }
                         }
 
                         HStack(spacing: 10) {
-                            PlayceButton("Apply", style: .outline) {
+                            PlayceButton(appliedLocally ? "Applied" : "Apply", style: appliedLocally ? .solid : .outline) {
                                 onApplyConfig(playerAName, playerBName, selectedPreset)
-                                sentToWatch = false
+                                appliedLocally = true
+                                watchSendState = .idle
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
+                                    appliedLocally = false
+                                }
                             }
-                            PlayceButton(sentToWatch ? "Sent" : "Send Watch", style: .solid) {
-                                onSendToWatch(playerAName, playerBName, selectedPreset)
-                                sentToWatch = true
+                            PlayceButton(watchSendState.title, style: watchSendState == .unavailable ? .outline : .solid) {
+                                let result = onSendToWatch(playerAName, playerBName, selectedPreset)
+                                watchSendState = WatchSendState(result)
+                                if watchSendState == .unavailable {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+                                        watchSendState = .idle
+                                    }
+                                }
                             }
                         }
                     }
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }
+            }
+        }
+    }
+
+    private func resetConfigFeedback() {
+        appliedLocally = false
+        watchSendState = .idle
+    }
+
+    private enum WatchSendState: Equatable {
+        case idle
+        case sent
+        case queued
+        case unavailable
+
+        init(_ result: WatchConfigSendResult) {
+            switch result {
+            case .sent:
+                self = .sent
+            case .queued:
+                self = .queued
+            case .unavailable:
+                self = .unavailable
+            }
+        }
+
+        var title: String {
+            switch self {
+            case .idle:
+                "Send Watch"
+            case .sent:
+                "Sent"
+            case .queued:
+                "Queued"
+            case .unavailable:
+                "Unavailable"
             }
         }
     }
@@ -380,6 +428,7 @@ struct TimerCard: View {
     let elapsed: Int
     let isRunning: Bool
     let hasStarted: Bool
+    var isReadOnly = false
     let onToggle: () -> Void
 
     var body: some View {
@@ -394,7 +443,17 @@ struct TimerCard: View {
                         .foregroundStyle(isRunning ? PlaycePalette.accent : PlaycePalette.textPrimary)
                 }
                 Spacer()
-                PlayceButton(timerButtonTitle, style: hasStarted ? .outline : .solid, action: onToggle)
+                if isReadOnly {
+                    Text(timerStatusTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(isRunning ? PlaycePalette.accent : PlaycePalette.textSecondary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(PlaycePalette.surfaceElevated, in: Capsule())
+                        .overlay(Capsule().stroke(PlaycePalette.border, lineWidth: 1))
+                } else {
+                    PlayceButton(timerButtonTitle, style: hasStarted ? .outline : .solid, action: onToggle)
+                }
             }
         }
     }
@@ -402,6 +461,11 @@ struct TimerCard: View {
     private var timerButtonTitle: String {
         if isRunning { return "Pause" }
         return hasStarted ? "Resume" : "Start"
+    }
+
+    private var timerStatusTitle: String {
+        if isRunning { return "Running" }
+        return hasStarted ? "Paused" : "Not started"
     }
 }
 
@@ -658,7 +722,13 @@ struct LiveScoreView: View {
                         LiveBadge()
                     }
                 }
-                TimerCard(elapsed: payload.elapsedSeconds, isRunning: true, hasStarted: true, onToggle: {})
+                TimerCard(
+                    elapsed: payload.elapsedSeconds,
+                    isRunning: payload.isTimerRunning,
+                    hasStarted: payload.hasTimerStarted,
+                    isReadOnly: true,
+                    onToggle: {}
+                )
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("LIVE SCORE")
@@ -1419,6 +1489,8 @@ struct PlayceButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 14)
                     .stroke(stroke, lineWidth: 1)
             )
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.08), value: configuration.isPressed)
     }
 }
 
@@ -1427,10 +1499,14 @@ struct WordmarkView: View {
     var width: CGFloat = 122
 
     var body: some View {
-        Image("PlayceWordmark")
-            .resizable()
-            .scaledToFit()
-            .frame(maxWidth: width)
+        HStack(spacing: 0) {
+            Text("PLAY")
+                .foregroundStyle(PlaycePalette.textPrimary)
+            Text("CE")
+                .foregroundStyle(PlaycePalette.accent)
+        }
+        .font(font.weight(.black))
+        .frame(maxWidth: width, alignment: .leading)
             .accessibilityLabel("PLAYCE")
     }
 }

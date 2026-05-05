@@ -13,6 +13,7 @@
 "Opening purchase..." = "Abriendo compra...";
 "Loading Premium..." = "Cargando Premium...";
 "Premium is not available yet. Try again later." = "Premium no esta disponible todavia. Intenta mas tarde.";
+"Premium can be unlocked locally in Debug." = "Premium se puede desbloquear localmente en Debug.";
 "Could not load premium price." = "No se pudo cargar el precio de Premium.";
 "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production." = "Premium desbloqueado localmente para Debug. Configura StoreKit/App Store Connect para produccion.";
 "Premium unlocked." = "Premium desbloqueado.";
@@ -24,6 +25,15 @@
 "No active premium purchase found." = "No se encontro una compra Premium activa.";
 "Could not restore purchases." = "No se pudieron restaurar las compras.";
 "Session ready" = "Sesion lista";
+"Watch not paired" = "Reloj no emparejado";
+"Watch app unavailable" = "App del reloj no disponible";
+"Watch reachable" = "Reloj conectado";
+"Watch not reachable" = "Reloj no conectado";
+"iPhone reachable" = "iPhone conectado";
+"iPhone not reachable" = "iPhone no conectado";
+"Failed to encode config" = "No se pudo preparar la configuracion";
+"Config queued for Watch" = "Configuracion en cola para reloj";
+"Config sent to Watch" = "Configuracion enviada al reloj";
 "Premium required" = "Se requiere Premium";
 "Free mode on watch. Unlock Premium to save and view your matches on iPhone." = "Modo gratis en reloj. Desbloquea Premium para guardar y ver tus partidos en iPhone.";
 "Unlock match save, history, detail and share card on mobile." = "Desbloquea guardado, historial, detalle y tarjeta para compartir.";
@@ -37,9 +47,12 @@
 "PLAYER NAMES" = "JUGADORES";
 "MATCH FORMAT" = "FORMATO";
 "Apply" = "Aplicar";
+"Applied" = "Aplicado";
 "Send to Watch" = "Enviar al reloj";
 "Sent!" = "Enviado";
 "Sent" = "Enviado";
+"Queued" = "En cola";
+"Unavailable" = "No disponible";
 "Send Watch" = "Enviar reloj";
 "Config sent to watch. Start the match on your watch when ready." = "Configuracion enviada al reloj. Inicia el partido cuando estes listo.";
 "MATCH TIMER" = "TIEMPO";

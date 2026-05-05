@@ -54,11 +54,19 @@ final class PremiumStore: ObservableObject {
             productPriceLabel = product?.displayPrice
             isBillingReady = product != nil
             if product == nil {
+#if DEBUG
+                message = isPremiumUnlocked ? nil : Self.localized("Premium can be unlocked locally in Debug.")
+#else
                 message = Self.localized("Premium is not available yet. Try again later.")
+#endif
             }
         } catch {
             isBillingReady = false
+#if DEBUG
+            message = isPremiumUnlocked ? nil : Self.localized("Premium can be unlocked locally in Debug.")
+#else
             message = Self.localized("Could not load premium price.")
+#endif
         }
     }
 
@@ -396,14 +404,59 @@ final class ConnectivityCoordinator: NSObject, ObservableObject {
         sendApplicationContext(payload)
     }
 
-    func sendMatchConfig(playerAName: String, playerBName: String, format: MatchFormat) {
+    @discardableResult
+    func sendMatchConfig(playerAName: String, playerBName: String, format: MatchFormat) -> WatchConfigSendResult {
+        guard let session else {
+            syncStatus = "WatchConnectivity unavailable"
+            return .unavailable
+        }
+
+        guard session.activationState == .activated else {
+            syncStatus = "Session pending"
+            return .unavailable
+        }
+
+#if os(iOS)
+        guard session.isPaired else {
+            syncStatus = "Watch not paired"
+            return .unavailable
+        }
+
+        guard session.isWatchAppInstalled else {
+            syncStatus = "Watch app unavailable"
+            return .unavailable
+        }
+#endif
+
         let payload = MatchConfigPayload(
             playerAName: playerAName,
             playerBName: playerBName,
             format: format
         )
-        syncStatus = "Sending match config"
-        sendApplicationContext(payload)
+        guard let encoded = try? encoder.encode(payload) else {
+            syncStatus = "Failed to encode config"
+            return .unavailable
+        }
+
+        do {
+            try session.updateApplicationContext(["matchConfig": encoded])
+        } catch {
+            syncStatus = "Config sync unavailable"
+            return .unavailable
+        }
+
+        if session.isReachable {
+            syncStatus = "Config sent to Watch"
+            session.sendMessageData(encoded, replyHandler: nil) { [weak self] _ in
+                Task { @MainActor in
+                    self?.syncStatus = "Config queued for Watch"
+                }
+            }
+            return .sent
+        }
+
+        syncStatus = "Config queued for Watch"
+        return .queued
     }
 
     func consumeMatchConfig() {
@@ -602,7 +655,23 @@ extension ConnectivityCoordinator: WCSessionDelegate {
             if let error {
                 self.syncStatus = "Session error: \(error.localizedDescription)"
             } else {
-                self.syncStatus = activationState == .activated ? "Session ready" : "Session pending"
+                guard activationState == .activated else {
+                    self.syncStatus = "Session pending"
+                    return
+                }
+#if os(iOS)
+                if !session.isPaired {
+                    self.syncStatus = "Watch not paired"
+                } else if !session.isWatchAppInstalled {
+                    self.syncStatus = "Watch app unavailable"
+                } else if session.isReachable {
+                    self.syncStatus = "Watch reachable"
+                } else {
+                    self.syncStatus = "Watch not reachable"
+                }
+#else
+                self.syncStatus = session.isReachable ? "iPhone reachable" : "iPhone not reachable"
+#endif
             }
         }
     }
@@ -626,7 +695,11 @@ extension ConnectivityCoordinator: WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessageData messageData: Data) {
         Task { @MainActor in
-            self.consumeFinishedMatchData(messageData)
+            if (try? self.decoder.decode(MatchConfigPayload.self, from: messageData)) != nil {
+                self.consumeMatchConfigData(messageData)
+            } else {
+                self.consumeFinishedMatchData(messageData)
+            }
         }
     }
 

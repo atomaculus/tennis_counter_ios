@@ -228,16 +228,16 @@ final class ScoringEngineTests: XCTestCase {
         XCTAssertTrue(score.currentServerIsPlayerA)
     }
 
-    func testServeStartsOnLeftThenAlternates() {
+    func testServeStartsOnRightThenAlternates() {
         var score = MatchSnapshot()
 
-        XCTAssertTrue(score.serveStartsOnLeftSide)
-
-        score = ScoringEngine.scorePoint(score, isPlayerA: true)
         XCTAssertFalse(score.serveStartsOnLeftSide)
 
         score = ScoringEngine.scorePoint(score, isPlayerA: true)
         XCTAssertTrue(score.serveStartsOnLeftSide)
+
+        score = ScoringEngine.scorePoint(score, isPlayerA: true)
+        XCTAssertFalse(score.serveStartsOnLeftSide)
     }
 
     func testReplayRecreatesExactScore() {

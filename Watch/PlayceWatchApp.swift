@@ -58,6 +58,10 @@ struct WatchRootView: View {
             transientMessage = "Config applied"
             WKInterfaceDevice.current().play(.click)
         }
+        .onChange(of: controller.state.elapsedSeconds) { _, _ in
+            guard controller.state.isTimerRunning, finishedRecord == nil else { return }
+            connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+        }
     }
 
     private var liveCounter: some View {
@@ -72,15 +76,15 @@ struct WatchRootView: View {
                         playerNameChip(controller.playerAName, accented: true)
                         playerNameChip(controller.playerBName, accented: false)
                     }
-                    Text("\(controller.state.pointLabel(for: .a)) - \(controller.state.pointLabel(for: .b))")
-                        .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundStyle(.white)
                     HStack(spacing: 8) {
                         compactStat("SETS", "\(controller.state.playerA.sets)-\(controller.state.playerB.sets)")
                         compactStat("GAMES", "\(controller.state.playerA.games)-\(controller.state.playerB.games)")
                     }
                     Text(PlayceFormatting.elapsed(controller.state.elapsedSeconds))
                         .font(.headline.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("\(controller.state.pointLabel(for: .a)) - \(controller.state.pointLabel(for: .b))")
+                        .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                     serveStatus
                 }

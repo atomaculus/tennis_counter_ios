@@ -21,67 +21,71 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 4. iPhone Simulator + Apple Watch Simulator emparejados: sync basico.
 5. Apple Watch fisico futuro: sync real y HealthKit real antes de TestFlight.
 
-## Sesion 1 - iPhone fisico
+## Sesion 1 - iPhone Simulator
 
-- [ ] App instala y abre.
-- [ ] Wordmark y pantalla principal se ven bien.
-- [ ] Configuracion de nombres funciona.
-- [ ] Cambio de formato Standard / Grand Slam / Fast4 funciona.
-- [ ] Sumar punto A/B funciona.
-- [ ] Undo A/B funciona.
-- [ ] Timer start/pause/resume funciona.
-- [ ] Reset game funciona.
-- [ ] Reset match funciona.
-- [ ] Se puede terminar un partido.
-- [ ] Se puede guardar partido.
-- [ ] History muestra el partido guardado.
-- [ ] Detail abre el partido correcto.
-- [ ] Adjuntar foto funciona.
-- [ ] Quitar foto funciona.
-- [ ] Share card abre share sheet.
-- [ ] Stats muestra totales correctos.
-- [ ] Export CSV abre share sheet.
+- [x] App instala y abre.
+- [x] Wordmark y pantalla principal se ven bien.
+- [x] Configuracion de nombres funciona. El problema de letras convertidas a `a` solo ocurre con teclado fisico/remoto; con teclado en pantalla del simulador funciona correctamente.
+- [x] Cambio de formato Standard / Grand Slam / Fast4 funciona.
+- [x] Sumar punto A/B funciona.
+- [x] Undo A/B funciona.
+- [x] Timer start/pause/resume funciona.
+- [x] Reset game funciona.
+- [x] Reset match funciona como `Nuevo partido`.
+- [x] Se puede terminar un partido.
+- [x] Se puede guardar partido.
+- [x] History muestra el partido guardado.
+- [x] Detail abre el partido correcto.
+- [x] Adjuntar foto funciona.
+- [x] Quitar foto funciona.
+- [x] Share card preview se ve bien. Share sheet abre, pero en simulador no se valido destino final externo.
+- [x] Stats muestra totales correctos.
+- [x] Export CSV abre share sheet.
 - [ ] Modo gratis bloquea features premium y deja usar contador.
-- [ ] DEBUG unlock premium permite acceder a History/Stats/Share.
+- [x] DEBUG unlock premium permite acceder a History/Stats/Share.
+- [x] Boton eliminar partido disponible en detalle.
+- [x] Lado de saque inicial arranca en `Right`.
 
 Resultado:
 
-- Estado: pendiente.
-- Bugs encontrados: ninguno registrado todavia.
+- Estado: en progreso.
+- Bugs encontrados: QA-001, QA-002, QA-003, QA-004, QA-005.
 
 ## Sesion 2 - Apple Watch Simulator
 
-- [ ] Watch app instala y abre.
-- [ ] HealthKit prompt no produce crash.
-- [ ] Pantalla principal se renderiza bien.
-- [ ] Sumar punto A/B funciona.
-- [ ] Undo A/B funciona.
-- [ ] Timer start/pause/resume funciona.
-- [ ] Reset game funciona.
-- [ ] Reset match funciona.
-- [ ] Finish match funciona.
+- [x] Watch app instala y abre.
+- [x] HealthKit prompt no produce crash.
+- [x] Pantalla principal se renderiza bien, con ajuste de orden visual pendiente en QA-006.
+- [x] Sumar punto A/B funciona.
+- [x] Undo A/B funciona.
+- [x] Timer start/pause/resume funciona.
+- [x] Reset game funciona.
+- [x] Reset match funciona.
+- [x] Finish match funciona.
 - [ ] Sync status se entiende.
+- [x] Lado de saque inicial arranca en `Right`.
 
 Resultado:
 
-- Estado: pendiente.
-- Bugs encontrados: ninguno registrado todavia.
+- Estado: funcional aprobado para scorer local. Queda pendiente sync.
+- Bugs encontrados: QA-006.
 
 ## Sesion 3 - Sync simuladores iPhone/Watch
 
-- [ ] iPhone Simulator y Apple Watch Simulator estan emparejados.
-- [ ] iPhone envia nombres/formato al Watch.
-- [ ] Watch aplica nombres/formato.
-- [ ] Watch envia live score.
-- [ ] iPhone muestra live score read-only.
+- [x] iPhone Simulator y Apple Watch Simulator estan emparejados.
+- [x] iPhone envia nombres/formato al Watch.
+- [x] Watch aplica nombres/formato.
+- [x] Watch envia live score.
+- [x] iPhone muestra live score read-only.
+- [ ] Timer live Watch -> iPhone actualiza continuamente y respeta pausa/reanudacion.
 - [ ] Watch termina partido.
 - [ ] iPhone guarda o rechaza segun premium.
 - [ ] No hay duplicados por reenvio.
 
 Resultado:
 
-- Estado: pendiente.
-- Bugs encontrados: ninguno registrado todavia.
+- Estado: sync basico aprobado en simuladores emparejados. Pendiente probar timer live continuo y cierre desde Watch.
+- Bugs encontrados: QA-007.
 
 ## Bugs
 
@@ -98,8 +102,78 @@ Severidad: bloqueante / alta / media / baja
 Estado: abierto / corregido / no reproducible / decision de producto
 ```
 
+### QA-001
+
+Ambiente: iPhone Simulator controlado por escritorio remoto.
+Pasos: abrir Config. partido, tocar campo de jugador y escribir `test`.
+Resultado esperado: el campo muestra `test`.
+Resultado real: el campo muestra `aaaa`.
+Severidad: alta.
+Estado: abierto. La logica SwiftUI solo recibe el texto del sistema y lo recorta a 12 caracteres; podria ser un problema de teclado remoto/iOS Simulator. Reprobar con teclado en pantalla del simulador.
+Resolucion: no es bug de la app. Con teclado en pantalla del simulador se puede escribir correctamente. Queda documentado como limitacion del escritorio remoto.
+
+### QA-002
+
+Ambiente: iPhone Simulator.
+Pasos: cambiar nombres y tocar `Aplicar`.
+Resultado esperado: feedback visual claro de que se aplico.
+Resultado real: aplicaba cambios, pero el boton no daba feedback suficientemente visible.
+Severidad: baja.
+Estado: corregido y confirmado por QA. `Aplicar` cambia a `Aplicado` y los botones tienen escala on-press.
+
+### QA-003
+
+Ambiente: iPhone Simulator + Apple Watch Simulator.
+Pasos: ver estado `Session ready`, tocar `Enviar reloj`.
+Resultado esperado: si no hay conexion efectiva, el estado previo no deberia sugerir que el Watch esta listo.
+Resultado real: antes de enviar decia `Session ready`; luego `Config sync unavailable`.
+Severidad: media.
+Estado: corregido en codigo, pendiente reprobar. El estado inicial ahora distingue `Watch reachable`, `Watch not reachable`, `Watch app unavailable` o `Watch not paired`. El boton de envio ya no cambia a `Enviado` cuando el envio falla; puede mostrar `En cola` o `No disponible`. Si el Watch esta reachable, se intenta envio inmediato ademas del application context.
+Resultado parcial de repro: con simuladores sin pair, la app muestra `Reloj no emparejado` y el boton cambia temporalmente a `No disponible`; comportamiento aprobado por producto. Se creo pair activo `F53F0C00-3900-4743-BAC1-E28328925E99` entre iPhone 17 Pro Simulator y Apple Watch Series 10 Simulator para continuar prueba de envio real en simulador.
+
+### QA-004
+
+Ambiente: iPhone Simulator DEBUG con premium desbloqueado.
+Pasos: abrir pantalla principal.
+Resultado esperado: mostrar herramientas premium desbloqueadas sin mensaje de error.
+Resultado real: mostraba `Premium no esta disponible todavia. Intenta mas tarde.` aunque las features premium estaban disponibles.
+Severidad: baja.
+Estado: corregido y confirmado por QA. El mensaje de StoreKit no disponible se oculta si premium esta desbloqueado y en DEBUG usa copy local. Debe mostrarse un mensaje equivalente solo si el usuario no tiene Premium o StoreKit no esta disponible.
+
+### QA-005
+
+Ambiente: iPhone Simulator.
+Pasos: abrir pantalla principal.
+Resultado esperado: wordmark integrado visualmente con el fondo.
+Resultado real: el wordmark parece tener fondo mas negro que la card/superficie.
+Severidad: baja.
+Estado: corregido y confirmado por QA. `WordmarkView` ahora replica el wordmark textual de Android (`PLAY` blanco + `CE` verde) y evita el rectangulo negro del PNG. Revisar tipografia final mas adelante.
+
+### QA-006
+
+Ambiente: Apple Watch Simulator.
+Pasos: abrir contador en Watch.
+Resultado esperado: orden visual solicitado por producto: sets/games/timer arriba, luego score del game actual, luego server y serve side.
+Resultado real: el score del game actual estaba arriba de sets/games/timer.
+Severidad: baja.
+Estado: corregido en codigo. `Watch/PlayceWatchApp.swift` ahora muestra sets/games/timer antes del score del game actual. Pendiente confirmacion visual del usuario en simulador.
+
+### QA-007
+
+Ambiente: iPhone Simulator + Apple Watch Simulator emparejados.
+Pasos: iniciar timer en Watch y mirar live score en iPhone sin sumar puntos.
+Resultado esperado: el timer del iPhone avanza a la par del timer del Watch y refleja pausa/reanudacion.
+Resultado real: el timer del iPhone solo actualizaba cuando se sumaba punto, se hacia undo o se pausaba el timer.
+Severidad: media.
+Estado: corregido y confirmado por QA. Watch emite live score al cambiar `elapsedSeconds` mientras el timer corre, y el payload ahora incluye `isTimerRunning`/`hasTimerStarted` para que iPhone muestre running/paused correctamente.
+Nota posterior: en modo broadcast, el timer del iPhone es solo display. Se cambio la UI para mostrar un pill de estado `Running`/`Paused`/`Not started` en vez de un boton accionable `Pause`/`Resume`.
+
 ## Decisiones de producto pendientes
 
-- Decidir si el timer visible del Apple Watch pasa a ser comportamiento oficial y luego se replica en Wear OS.
+- Decidir si el timer visible del Apple Watch pasa a ser comportamiento oficial y luego se replica en Wear OS. Producto lo marco como deseable para Android/Wear.
+- Revisar en Android/Wear si el timer live tiene el mismo problema de actualizar el telefono solo con eventos discretos; si ocurre, replicar timer live continuo.
+- Evaluar replicar en Android mobile el preview de share card antes de compartir.
+- Evaluar replicar en Android mobile el boton de eliminar partido desde detalle.
 - Decidir si iOS/watchOS mantiene botones Undo o adopta long press como Android/Wear.
 - Decidir si alguna diferencia visual de iOS debe preservarse por ser mas nativa de Apple.
+- Revisar `Docs/ANDROID_BACKPORT_CANDIDATES.md` antes de hacer cambios de paridad Android/iOS.

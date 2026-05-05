@@ -13,6 +13,7 @@
 "Opening purchase..." = "Opening purchase...";
 "Loading Premium..." = "Loading Premium...";
 "Premium is not available yet. Try again later." = "Premium is not available yet. Try again later.";
+"Premium can be unlocked locally in Debug." = "Premium can be unlocked locally in Debug.";
 "Could not load premium price." = "Could not load premium price.";
 "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production." = "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production.";
 "Premium unlocked." = "Premium unlocked.";
@@ -24,6 +25,15 @@
 "No active premium purchase found." = "No active premium purchase found.";
 "Could not restore purchases." = "Could not restore purchases.";
 "Session ready" = "Session ready";
+"Watch not paired" = "Watch not paired";
+"Watch app unavailable" = "Watch app unavailable";
+"Watch reachable" = "Watch reachable";
+"Watch not reachable" = "Watch not reachable";
+"iPhone reachable" = "iPhone reachable";
+"iPhone not reachable" = "iPhone not reachable";
+"Failed to encode config" = "Failed to encode config";
+"Config queued for Watch" = "Config queued for Watch";
+"Config sent to Watch" = "Config sent to Watch";
 "Premium required" = "Premium required";
 "Free mode on watch. Unlock Premium to save and view your matches on iPhone." = "Free mode on watch. Unlock Premium to save and view your matches on iPhone.";
 "Unlock match save, history, detail and share card on mobile." = "Unlock match save, history, detail and share card on mobile.";
@@ -37,9 +47,12 @@
 "PLAYER NAMES" = "PLAYER NAMES";
 "MATCH FORMAT" = "MATCH FORMAT";
 "Apply" = "Apply";
+"Applied" = "Applied";
 "Send to Watch" = "Send to Watch";
 "Sent!" = "Sent!";
 "Sent" = "Sent";
+"Queued" = "Queued";
+"Unavailable" = "Unavailable";
 "Send Watch" = "Send Watch";
 "Config sent to watch. Start the match on your watch when ready." = "Config sent to watch. Start the match on your watch when ready.";
 "MATCH TIMER" = "MATCH TIMER";
