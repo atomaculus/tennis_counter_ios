@@ -1,67 +1,115 @@
-# PLAYCE iOS - Tennis Score Tracker for iPhone & Apple Watch
+# PLAYCE iOS
 
-iOS and watchOS port of [PLAYCE](https://github.com/atomaculus/tennis_counter), the tennis and padel score tracker originally built for Android and Wear OS.
+iOS/watchOS port of [PLAYCE Android](https://github.com/atomaculus/tennis_counter), a tennis and padel score tracker for phone and watch.
 
----
-
-## Why I built this
-
-After shipping the Android version of PLAYCE, the natural next step was iOS. The architecture had to be rethought for Apple's ecosystem - watchOS and WatchConnectivity work differently than Wear OS, and SwiftUI has its own patterns compared to Jetpack Compose. Rather than copy-paste, this port was a deliberate platform adaptation.
-
----
-
-## Features
-
-- **Apple Watch scorer** - live point tracking from the wrist, watch is the source of truth during a match
-- **iPhone observer** - read-only live score display while a match is in progress
-- **Match history** - finished matches stored locally on iPhone
-- **Share card** - match summary rendered and shareable from iPhone
-- **HealthKit integration** - watch tracks the match as a workout session
-- **Premium gate** - freemium model with local persistence; free mode keeps a manual counter on iPhone
-
----
-
-## Tech stack
-
-| Layer | Stack |
-|---|---|
-| Apple Watch | SwiftUI (watchOS) |
-| iPhone | SwiftUI (iOS) |
-| Shared logic | Swift - tennis scoring engine in `Shared/` |
-| Sync | WatchConnectivity |
-| Health | HealthKit workout session manager |
-| Store | StoreKit (stubbed, local persistence) |
-
----
-
-## Architecture
+The goal of this repo is product parity with Android while respecting Apple platform boundaries:
 
 ```text
-Shared/   -> Tennis scoring engine, shared models
-iOS/      -> iPhone screens, history, share card, premium gate
-Watch/    -> Apple Watch live scorer and workout flow
+Android :shared  -> iOS Shared/
+Android :mobile  -> iOS iOS/
+Android :app     -> iOS Watch/
 ```
 
-The watch handles live scoring. The iPhone acts as companion display and storage layer for completed matches.
+Keep phone-only features in `iOS/`, watch-only features in `Watch/`, and rules/models/sync contracts in `Shared/`.
 
----
+## MVP Status
 
-## Main flows
+Implemented:
 
-1. Start and score a match from Apple Watch
-2. Sync the live match state to the iPhone
-3. Save finished matches into local history
-4. Render and share a summary card from iPhone
-5. Track the session as a workout through HealthKit
+- Shared tennis scoring engine with Standard, Grand Slam and Fast4 formats.
+- No-ad, tiebreak, final-set super tiebreak, replay, server and serve-side logic.
+- iPhone counter with setup, timer, scoring, undo, reset, finish and save.
+- Apple Watch scorer with timer, scoring, undo, reset, finish, HealthKit workout lifecycle and sync status.
+- WatchConnectivity live score, config sync, finished-match transfer, retry state and ACK handling.
+- Local match history with versioned JSON archive and legacy migration.
+- Match detail, delete, attached photo, share card PNG.
+- Stats and CSV export.
+- Premium gate with StoreKit 2 product `premium_unlock` and DEBUG local unlock fallback.
+- Shared assets, app icon, wordmark and English/Spanish localizable strings.
+- QA and release prep docs.
 
----
+Known MVP follow-ups:
 
-## Platform note
+- Android Wear opens undo through long press on `+A`/`+B`; this MVP still shows explicit `Undo A`/`Undo B` controls.
+- A second spectator watch is not directly equivalent on standard watchOS pairing topology.
+- Real StoreKit, HealthKit and WatchConnectivity must be validated with signed builds on real devices before TestFlight.
+- Garmin / Connect IQ remains second priority and is tracked in `/Users/nicolasolivares/AGM/PLAN_REPLICA_IOS_PLAYCE.md`.
 
-This is not a direct 1:1 copy of the Android project. The core product intent is the same, but the implementation follows Apple platform conventions and capabilities.
+## Project Files
 
----
+This repo uses XcodeGen. The generated Xcode project is derived from `project.yml`.
 
-## Status
+```text
+Shared/       Shared scoring engine, models, stores, sync contracts
+iOS/          iPhone SwiftUI app
+Watch/        Apple Watch SwiftUI app and HealthKit manager
+Resources/    Asset catalog, localizations, privacy manifest
+Tests/        Unit tests for shared behavior
+Docs/         Porting, QA, architecture and release notes
+```
 
-The codebase is structured and feature-complete at the source level, but final Xcode project generation and device validation must be done on macOS.
+Current targets:
+
+- `PlayceIOS`: iPhone app, embeds the Watch app.
+- `PlayceWatchApp`: watchOS scorer app.
+- `PlayceSharedTests`: unit tests for scoring, stores, stats, share data and premium.
+
+## Local Build
+
+Run from `/Users/nicolasolivares/AGM/tennis_counter_ios`:
+
+```bash
+xcodegen generate
+xcodebuild test -project Playce.xcodeproj -scheme PlayceSharedTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
+xcodebuild -project Playce.xcodeproj -scheme PlayceIOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project Playce.xcodeproj -scheme PlayceWatchApp -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build
+git diff --check
+```
+
+Last verified locally:
+
+- `PlayceSharedTests`: 33 tests, 0 failures.
+- `PlayceIOS`: simulator build succeeded.
+- `PlayceWatchApp`: simulator build succeeded.
+- Apple Watch Simulator smoke: app opens and renders the counter without the HealthKit crash.
+
+## Manual QA
+
+Use [Docs/MVP_QA_CHECKLIST.md](Docs/MVP_QA_CHECKLIST.md) for the current MVP checklist.
+
+Main flows to validate:
+
+1. Count a full match from iPhone.
+2. Count a full match from Apple Watch.
+3. Send config from iPhone to Watch.
+4. Observe live Watch score on iPhone.
+5. Save a finished Watch match on iPhone.
+6. Open History, Detail and Stats.
+7. Export CSV and share match card.
+8. Verify premium locked/unlocked states.
+
+## Release Prep
+
+Use [Docs/RELEASE_PREP.md](Docs/RELEASE_PREP.md) before any App Store Connect work.
+
+Current release-related files:
+
+- `Watch/PlayceWatchApp.entitlements`: HealthKit entitlement for Watch.
+- `Resources/PrivacyInfo.xcprivacy`: required reason API declaration for `UserDefaults`.
+- `project.yml`: generated Info.plist keys including HealthKit usage descriptions.
+
+Release blockers:
+
+- Apple Developer team and signing.
+- Production bundle identifiers.
+- App Store Connect product `premium_unlock`.
+- Privacy policy URL and App Privacy answers.
+- Screenshots and metadata.
+- Archive and TestFlight validation.
+
+## Documentation
+
+- [Docs/ARCHITECTURE.md](Docs/ARCHITECTURE.md): module boundaries and data flow.
+- [Docs/PORTING_NOTES.md](Docs/PORTING_NOTES.md): Android-to-iOS porting decisions.
+- [Docs/MVP_QA_CHECKLIST.md](Docs/MVP_QA_CHECKLIST.md): repeatable QA checklist.
+- [Docs/RELEASE_PREP.md](Docs/RELEASE_PREP.md): release prep and App Store blockers.

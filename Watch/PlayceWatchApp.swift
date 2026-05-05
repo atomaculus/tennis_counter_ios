@@ -31,9 +31,11 @@ struct WatchRootView: View {
     @ObservedObject var controller: ScoreboardController
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
     @EnvironmentObject private var workoutManager: WorkoutSessionManager
+    @EnvironmentObject private var historyStore: MatchHistoryStore
 
     @State private var finishedRecord: FinishedMatchRecord?
     @State private var transientMessage: String?
+    @State private var savedFinishedRecord = false
 
     var body: some View {
         ScrollView {
@@ -48,6 +50,14 @@ struct WatchRootView: View {
             .padding(.vertical, 8)
         }
         .background(Color.black.ignoresSafeArea())
+        .onChange(of: connectivity.receivedMatchConfig) { _, config in
+            guard let config else { return }
+            controller.setPlayerNames(config.playerAName, config.playerBName)
+            controller.setMatchFormat(config.format)
+            connectivity.consumeMatchConfig()
+            transientMessage = "Config applied"
+            WKInterfaceDevice.current().play(.click)
+        }
     }
 
     private var liveCounter: some View {
@@ -58,6 +68,10 @@ struct WatchRootView: View {
                     Text("LIVE MATCH")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
+                    HStack(spacing: 6) {
+                        playerNameChip(controller.playerAName, accented: true)
+                        playerNameChip(controller.playerBName, accented: false)
+                    }
                     Text("\(controller.state.pointLabel(for: .a)) - \(controller.state.pointLabel(for: .b))")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
@@ -68,6 +82,7 @@ struct WatchRootView: View {
                     Text(PlayceFormatting.elapsed(controller.state.elapsedSeconds))
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
+                    serveStatus
                 }
             }
 
@@ -77,8 +92,16 @@ struct WatchRootView: View {
             }
 
             HStack(spacing: 8) {
-                smallButton("Undo A") { _ = controller.undoLastPoint(for: .a) }
-                smallButton("Undo B") { _ = controller.undoLastPoint(for: .b) }
+                smallButton("Undo A") {
+                    if controller.undoLastPoint(for: .a) {
+                        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+                    }
+                }
+                smallButton("Undo B") {
+                    if controller.undoLastPoint(for: .b) {
+                        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+                    }
+                }
             }
 
             HStack(spacing: 8) {
@@ -93,14 +116,13 @@ struct WatchRootView: View {
             }
 
             smallButton("Finish Match", accent: true) {
-                finishedRecord = controller.finishMatchRecord(source: "watchOS")
-                connectivity.clearLiveMatch()
-                workoutManager.endWorkout()
-                WKInterfaceDevice.current().play(.success)
+                finishMatch()
             }
 
             smallButton("New Match", danger: true) {
                 controller.resetMatch()
+                finishedRecord = nil
+                savedFinishedRecord = false
                 connectivity.clearLiveMatch()
                 workoutManager.startMatchWorkoutIfPossible()
             }
@@ -134,15 +156,19 @@ struct WatchRootView: View {
                 }
             }
 
-            smallButton("Save Match", accent: true) {
+            smallButton(savedFinishedRecord ? "Saved" : "Save Match", accent: !savedFinishedRecord) {
+                guard !savedFinishedRecord else { return }
+                historyStore.upsert(record)
                 connectivity.queueFinishedMatch(record)
-                transientMessage = "Queued for iPhone"
+                savedFinishedRecord = true
+                transientMessage = "Saved and queued"
                 WKInterfaceDevice.current().play(.click)
             }
 
             smallButton("Start New", danger: true) {
                 finishedRecord = nil
                 transientMessage = nil
+                savedFinishedRecord = false
                 controller.resetMatch()
                 connectivity.clearLiveMatch()
                 workoutManager.startMatchWorkoutIfPossible()
@@ -154,6 +180,35 @@ struct WatchRootView: View {
         controller.addPoint(to: side)
         connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: side)
         WKInterfaceDevice.current().play(side == .a ? .click : .directionUp)
+        if controller.finishedSummary != nil {
+            finishMatch()
+        }
+    }
+
+    private func finishMatch() {
+        if controller.finishedSummary == nil {
+            controller.finishMatch()
+        }
+        finishedRecord = controller.finishMatchRecord(source: "watchOS")
+        savedFinishedRecord = false
+        connectivity.clearLiveMatch()
+        workoutManager.endWorkout()
+        WKInterfaceDevice.current().play(.success)
+    }
+
+    private var serveStatus: some View {
+        HStack(spacing: 6) {
+            compactPill(
+                controller.state.isTiebreak ? "TB" : "SRV",
+                controller.state.currentServerIsPlayerA ? controller.playerAName : controller.playerBName,
+                accented: controller.state.isTiebreak
+            )
+            compactPill(
+                "SIDE",
+                controller.state.serveStartsOnLeftSide ? "Left" : "Right",
+                accented: false
+            )
+        }
     }
 
     private func statusLabel(_ text: String) -> some View {
@@ -180,6 +235,33 @@ struct WatchRootView: View {
         .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: RoundedRectangle(cornerRadius: 12))
     }
 
+    private func compactPill(_ title: String, _ value: String, accented: Bool) -> some View {
+        VStack(spacing: 1) {
+            Text(title)
+                .font(.system(size: 8, weight: .black))
+                .foregroundStyle(.gray)
+            Text(value)
+                .font(.system(size: 10, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .foregroundStyle(accented ? Color(red: 0.72, green: 1.0, blue: 0.17) : .white)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 5)
+        .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func playerNameChip(_ name: String, accented: Bool) -> some View {
+        Text(name)
+            .font(.system(size: 10, weight: .bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.65)
+            .foregroundStyle(accented ? Color(red: 0.72, green: 1.0, blue: 0.17) : .white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+            .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: Capsule())
+    }
+
     private func roundAction(_ label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
@@ -195,6 +277,8 @@ struct WatchRootView: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
                 .foregroundStyle(accent ? .black : (danger ? Color.red : .white))
@@ -260,11 +344,12 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
     }
 
     func endWorkout() {
-        builder?.endCollection(withEnd: Date()) { [weak self] _, _ in
-            self?.builder?.finishWorkout { _, _ in }
+        let builder = builder
+        builder?.endCollection(withEnd: Date()) { _, _ in
+            builder?.finishWorkout { _, _ in }
         }
         session?.end()
         session = nil
-        builder = nil
+        self.builder = nil
     }
 }
