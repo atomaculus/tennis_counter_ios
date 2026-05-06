@@ -47,6 +47,15 @@ final class PremiumStore: ObservableObject {
         Task { await restoreStoreKitPurchases() }
     }
 
+#if DEBUG
+    func setDebugPremiumUnlocked(_ value: Bool) {
+        setPremiumUnlocked(value)
+        message = value
+            ? Self.localized("Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production.")
+            : Self.localized("Premium locked locally for Debug.")
+    }
+#endif
+
     private func loadProducts() async {
         do {
             let products = try await Product.products(for: [Self.premiumProductID])

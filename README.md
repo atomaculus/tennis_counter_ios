@@ -103,6 +103,7 @@ Release blockers:
 - Apple Developer team and signing.
 - Production bundle identifiers.
 - App Store Connect product `premium_unlock`.
+- Remove or hide visible DEBUG premium lock/unlock controls before production.
 - Privacy policy URL and App Privacy answers.
 - Screenshots and metadata.
 - Archive and TestFlight validation.

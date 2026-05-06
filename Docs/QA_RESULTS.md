@@ -6,7 +6,7 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 
 - Fecha de inicio QA: 2026-05-05.
 - Commit local del MVP: `d6cd62a Build iOS watchOS MVP port`.
-- GitHub push: pendiente por permisos. El repo local esta `main...origin/main [ahead 1]`.
+- GitHub push: realizado hasta el commit `5a647ec Document completed watch sync QA`. Hay cambios posteriores de QA premium pendientes de nuevo commit/push.
 - Dispositivos disponibles hoy:
   - iPhone fisico: disponible.
   - iPhone Simulator: disponible.
@@ -41,14 +41,16 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 - [x] Share card preview se ve bien. Share sheet abre, pero en simulador no se valido destino final externo.
 - [x] Stats muestra totales correctos.
 - [x] Export CSV abre share sheet.
-- [ ] Modo gratis bloquea features premium y deja usar contador.
+- [x] Modo gratis bloquea features premium y deja usar contador.
+- [x] En modo gratis, guardar un partido muestra `Guardado para Premium` y explica que se vera en Historial al desbloquear Premium.
+- [x] Al desbloquear Premium en DEBUG, el partido guardado en modo gratis aparece en History.
 - [x] DEBUG unlock premium permite acceder a History/Stats/Share.
 - [x] Boton eliminar partido disponible en detalle.
 - [x] Lado de saque inicial arranca en `Right`.
 
 Resultado:
 
-- Estado: en progreso.
+- Estado: aprobado para iPhone Simulator en el alcance MVP probado.
 - Bugs encontrados: QA-001, QA-002, QA-003, QA-004, QA-005.
 
 ## Sesion 2 - Apple Watch Simulator
@@ -177,6 +179,15 @@ Resultado real: la barra muestra mensajes como `ACK inserted`, utiles para QA pe
 Severidad: baja.
 Estado: decision de producto. Mantener por ahora para testing; antes de release revisar copy/visibilidad de status tecnico. Producto valora `broadcasting` como estado visible, pero no mensajes internos tipo ACK.
 
+### QA-009
+
+Ambiente: iPhone Simulator DEBUG.
+Pasos: bloquear Premium con control DEBUG, terminar un partido en modo gratis, guardarlo, desbloquear Premium con control DEBUG y abrir History.
+Resultado esperado: el contador sigue funcionando gratis; History/Stats quedan bloqueados; al guardar desde gratis, el feedback no promete acceso inmediato y aclara que el partido queda disponible al desbloquear Premium.
+Resultado real: comportamiento aprobado por QA. El boton muestra `Guardado para Premium`, el mensaje indica que se vera en Historial al desbloquear Premium y el partido aparece en History luego del unlock DEBUG.
+Severidad: baja.
+Estado: corregido y confirmado por QA.
+
 ## Decisiones de producto pendientes
 
 - Decidir si el timer visible del Apple Watch pasa a ser comportamiento oficial y luego se replica en Wear OS. Producto lo marco como deseable para Android/Wear.
@@ -186,4 +197,5 @@ Estado: decision de producto. Mantener por ahora para testing; antes de release 
 - Evaluar replicar en Android mobile el boton de eliminar partido desde detalle.
 - Decidir si iOS/watchOS mantiene botones Undo o adopta long press como Android/Wear.
 - Decidir si alguna diferencia visual de iOS debe preservarse por ser mas nativa de Apple.
+- Quitar u ocultar los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` antes de producto final; son solo herramienta de QA local.
 - Revisar `Docs/ANDROID_BACKPORT_CANDIDATES.md` antes de hacer cambios de paridad Android/iOS.

@@ -16,6 +16,7 @@
 "Premium can be unlocked locally in Debug." = "Premium se puede desbloquear localmente en Debug.";
 "Could not load premium price." = "No se pudo cargar el precio de Premium.";
 "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production." = "Premium desbloqueado localmente para Debug. Configura StoreKit/App Store Connect para produccion.";
+"Premium locked locally for Debug." = "Premium bloqueado localmente para Debug.";
 "Premium unlocked." = "Premium desbloqueado.";
 "Purchase could not be verified." = "La compra no se pudo verificar.";
 "Purchase canceled." = "Compra cancelada.";
@@ -51,6 +52,8 @@
 "Send to Watch" = "Enviar al reloj";
 "Sent!" = "Enviado";
 "Sent" = "Enviado";
+"Saved for Premium" = "Guardado para Premium";
+"Match saved. Unlock Premium to view it in History." = "Partido guardado. Desbloquea Premium para verlo en Historial.";
 "Queued" = "En cola";
 "Unavailable" = "No disponible";
 "Send Watch" = "Enviar reloj";

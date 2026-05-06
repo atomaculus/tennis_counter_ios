@@ -70,6 +70,7 @@ struct CounterTabView: View {
     @ObservedObject var controller: ScoreboardController
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
     @EnvironmentObject private var historyStore: MatchHistoryStore
+    @EnvironmentObject private var premiumStore: PremiumStore
 
     var body: some View {
         Group {
@@ -79,6 +80,7 @@ struct CounterTabView: View {
             } else if let summary = controller.finishedSummary {
                 MobileMatchFinishedContent(
                     summary: summary,
+                    isPremiumUnlocked: premiumStore.isPremiumUnlocked,
                     onSave: {
                         historyStore.upsert(controller.finishMatchRecord(source: "iPhone"))
                     },
@@ -185,6 +187,11 @@ struct PremiumHeaderCard: View {
                     }
                     .disabled(premiumStore.isPurchaseInProgress)
                 }
+#if DEBUG
+                PlayceButton(premiumStore.isPremiumUnlocked ? "Debug: Lock Premium" : "Debug: Unlock Premium", style: .outline) {
+                    premiumStore.setDebugPremiumUnlocked(!premiumStore.isPremiumUnlocked)
+                }
+#endif
                 PremiumStatusMessageView()
             }
         }
@@ -646,6 +653,7 @@ struct ScoreValue: View {
 
 struct MobileMatchFinishedContent: View {
     let summary: MobileFinishedSummary
+    let isPremiumUnlocked: Bool
     let onSave: () -> Void
     let onNewMatch: () -> Void
 
@@ -691,10 +699,16 @@ struct MobileMatchFinishedContent: View {
                 }
 
                 VStack(spacing: 10) {
-                    PlayceButton(saved ? "Saved" : "Save Match", style: saved ? .outline : .solid) {
+                    PlayceButton(saveButtonTitle, style: saved ? .outline : .solid) {
                         guard !saved else { return }
                         onSave()
                         saved = true
+                    }
+                    if saved && !isPremiumUnlocked {
+                        Text("Match saved. Unlock Premium to view it in History.")
+                            .font(.footnote)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                            .multilineTextAlignment(.center)
                     }
                     PlayceButton("New Match", style: .danger, action: onNewMatch)
                 }
@@ -702,6 +716,13 @@ struct MobileMatchFinishedContent: View {
             .padding(16)
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+    }
+
+    private var saveButtonTitle: String {
+        if saved {
+            return isPremiumUnlocked ? "Saved" : "Saved for Premium"
+        }
+        return "Save Match"
     }
 }
 

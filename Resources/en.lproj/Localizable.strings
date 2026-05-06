@@ -16,6 +16,7 @@
 "Premium can be unlocked locally in Debug." = "Premium can be unlocked locally in Debug.";
 "Could not load premium price." = "Could not load premium price.";
 "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production." = "Premium unlocked locally for Debug. Configure StoreKit/App Store Connect for production.";
+"Premium locked locally for Debug." = "Premium locked locally for Debug.";
 "Premium unlocked." = "Premium unlocked.";
 "Purchase could not be verified." = "Purchase could not be verified.";
 "Purchase canceled." = "Purchase canceled.";
@@ -51,6 +52,8 @@
 "Send to Watch" = "Send to Watch";
 "Sent!" = "Sent!";
 "Sent" = "Sent";
+"Saved for Premium" = "Saved for Premium";
+"Match saved. Unlock Premium to view it in History." = "Match saved. Unlock Premium to view it in History.";
 "Queued" = "Queued";
 "Unavailable" = "Unavailable";
 "Send Watch" = "Send Watch";

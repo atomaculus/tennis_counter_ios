@@ -25,6 +25,20 @@ final class PremiumStoreTests: XCTestCase {
         XCTAssertNotNil(store.message)
     }
 
+    func testDebugPremiumToggleCanLockPremiumForQA() {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "playce.premium.unlocked")
+        let store = PremiumStore(defaults: defaults)
+
+        XCTAssertTrue(store.isPremiumUnlocked)
+
+        store.setDebugPremiumUnlocked(false)
+
+        XCTAssertFalse(store.isPremiumUnlocked)
+        XCTAssertFalse(defaults.bool(forKey: "playce.premium.unlocked"))
+        XCTAssertNotNil(store.message)
+    }
+
     private func makeDefaults() -> UserDefaults {
         let suiteName = "playce.tests.premium.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
