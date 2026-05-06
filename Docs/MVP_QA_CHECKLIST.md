@@ -20,7 +20,7 @@ git diff --check
 
 Resultado esperado:
 
-- Tests compartidos: 33 tests, 0 fallas.
+- Tests compartidos: 34 tests, 0 fallas.
 - Build iOS Simulator: `BUILD SUCCEEDED`.
 - Build watchOS Simulator: `BUILD SUCCEEDED`.
 - `git diff --check`: sin salida.
@@ -29,54 +29,54 @@ Resultado esperado:
 
 Prioridad actual: alta. Se puede validar en iPhone fisico o iPhone Simulator.
 
-- [ ] Abrir `PlayceIOS` en iPhone Simulator.
-- [ ] Confirmar que carga el wordmark y la pantalla principal sin textos cortados.
-- [ ] Configurar nombres de jugadores.
-- [ ] Cambiar formato entre Standard, Grand Slam y Fast4.
-- [ ] Sumar puntos para A y B.
-- [ ] Usar undo para A y B.
-- [ ] Resetear game y match.
-- [ ] Iniciar, pausar y reanudar timer.
-- [ ] Terminar un partido completo.
-- [ ] Guardar partido terminado.
-- [ ] Abrir History.
-- [ ] Abrir detalle de un partido.
-- [ ] Adjuntar y quitar foto.
-- [ ] Compartir tarjeta del partido.
-- [ ] Abrir Stats.
-- [ ] Exportar CSV.
-- [ ] Verificar que el modo gratis mantiene usable el contador y bloquea features premium.
-- [ ] En `DEBUG`, usar unlock premium local y repetir History/Stats/Share.
+- [x] Abrir `PlayceIOS` en iPhone Simulator.
+- [x] Confirmar que carga el wordmark y la pantalla principal sin textos cortados.
+- [x] Configurar nombres de jugadores.
+- [x] Cambiar formato entre Standard, Grand Slam y Fast4.
+- [x] Sumar puntos para A y B.
+- [x] Usar undo para A y B.
+- [x] Resetear game y match.
+- [x] Iniciar, pausar y reanudar timer.
+- [x] Terminar un partido completo.
+- [x] Guardar partido terminado.
+- [x] Abrir History.
+- [x] Abrir detalle de un partido.
+- [x] Adjuntar y quitar foto.
+- [x] Compartir tarjeta del partido. En simulador se valido preview/share sheet, no un destino externo final.
+- [x] Abrir Stats.
+- [x] Exportar CSV.
+- [x] Verificar que el modo gratis mantiene usable el contador y bloquea features premium.
+- [x] En `DEBUG`, usar unlock premium local y repetir History/Stats/Share.
 
 ## Checklist manual Apple Watch
 
 Prioridad actual: media-alta. Hoy se valida en Apple Watch Simulator. La validacion final requiere Apple Watch fisico.
 
-- [ ] Abrir `PlayceWatchApp` en Apple Watch Simulator.
-- [ ] Aceptar o rechazar HealthKit sin crash.
-- [ ] Confirmar que aparece la pantalla principal del contador.
-- [ ] Sumar puntos para A y B.
-- [ ] Usar undo para A y B.
-- [ ] Iniciar, pausar y reanudar timer.
-- [ ] Resetear game y match.
-- [ ] Terminar partido desde el Watch.
-- [ ] Confirmar que la pantalla no se cierra inesperadamente.
-- [ ] Confirmar que el estado de sync se muestra de forma entendible.
+- [x] Abrir `PlayceWatchApp` en Apple Watch Simulator.
+- [x] Aceptar o rechazar HealthKit sin crash.
+- [x] Confirmar que aparece la pantalla principal del contador.
+- [x] Sumar puntos para A y B.
+- [x] Usar undo para A y B.
+- [x] Iniciar, pausar y reanudar timer.
+- [x] Resetear game y match.
+- [x] Terminar partido desde el Watch.
+- [x] Confirmar que la pantalla no se cierra inesperadamente.
+- [ ] Confirmar que el estado de sync se muestra de forma entendible para producto final. Para testing esta aprobado; falta quitar copy tecnico tipo `ACK inserted`.
 
 ## Checklist manual sync iPhone/Watch
 
 Prioridad actual: alta para simulador, bloqueada para validacion final real hasta tener Apple Watch fisico.
 
-- [ ] Abrir iPhone y Apple Watch Simulator emparejados.
-- [ ] Desde iPhone, configurar nombres/formato.
-- [ ] Enviar configuracion al Watch.
-- [ ] Confirmar que el Watch aplica nombres/formato.
-- [ ] Sumar puntos desde Watch.
-- [ ] Confirmar que iPhone muestra live score read-only.
-- [ ] Terminar partido desde Watch.
-- [ ] Confirmar que iPhone guarda o rechaza segun estado premium.
+- [x] Abrir iPhone y Apple Watch Simulator emparejados.
+- [x] Desde iPhone, configurar nombres/formato.
+- [x] Enviar configuracion al Watch.
+- [x] Confirmar que el Watch aplica nombres/formato.
+- [x] Sumar puntos desde Watch.
+- [x] Confirmar que iPhone muestra live score read-only.
+- [x] Terminar partido desde Watch.
+- [x] Confirmar que iPhone guarda o rechaza segun estado premium.
 - [ ] Reintentar con iPhone cerrado o no reachable si el simulador lo permite.
-- [ ] Confirmar que no se duplican partidos al reenviar el mismo `idempotencyKey`.
+- [x] Confirmar que no se duplican partidos al reenviar el mismo `idempotencyKey`.
 
 ## Regresion contra Android
 
@@ -99,10 +99,11 @@ Casos cubiertos por tests Swift:
 
 ## Bugs y decisiones conocidas
 
-- La cuenta local esta `ahead 1` con el commit `d6cd62a Build iOS watchOS MVP port`; el push a GitHub esta pendiente hasta que el collaborator invite de `Nicolas-Olivares` quede aceptado.
+- GitHub esta al dia hasta `2da2d37 Clarify free premium save flow`.
 - En Android Wear, el undo puede abrirse con long press sobre `+A` o `+B`; en el MVP iOS/watchOS todavia existen botones `Undo A` y `Undo B`. Esto queda como ajuste de paridad UX posterior al MVP.
 - No ajustar automaticamente diferencias iOS vs Android: algunas decisiones iOS/watchOS pueden pasar a ser oficiales y luego replicarse en Android, por ejemplo el boton de timer en Apple Watch/Wear OS.
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
 - StoreKit usa producto `premium_unlock`; para release real falta configurarlo en App Store Connect o archivo `.storekit`.
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
-- Sync WatchConnectivity fue validado por build y smoke de simulador; la validacion final debe hacerse con iPhone + Apple Watch reales antes de TestFlight.
+- Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de TestFlight.
+- Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA y deben quitarse u ocultarse antes de producto final.

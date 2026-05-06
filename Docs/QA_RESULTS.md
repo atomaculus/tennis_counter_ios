@@ -5,8 +5,8 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 ## Estado operativo
 
 - Fecha de inicio QA: 2026-05-05.
-- Commit local del MVP: `d6cd62a Build iOS watchOS MVP port`.
-- GitHub push: realizado hasta el commit `5a647ec Document completed watch sync QA`. Hay cambios posteriores de QA premium pendientes de nuevo commit/push.
+- Commit actual pusheado: `2da2d37 Clarify free premium save flow`.
+- GitHub push: al dia contra `origin/main`.
 - Dispositivos disponibles hoy:
   - iPhone fisico: disponible.
   - iPhone Simulator: disponible.
@@ -111,7 +111,7 @@ Pasos: abrir Config. partido, tocar campo de jugador y escribir `test`.
 Resultado esperado: el campo muestra `test`.
 Resultado real: el campo muestra `aaaa`.
 Severidad: alta.
-Estado: abierto. La logica SwiftUI solo recibe el texto del sistema y lo recorta a 12 caracteres; podria ser un problema de teclado remoto/iOS Simulator. Reprobar con teclado en pantalla del simulador.
+Estado: no reproducible en la app. La logica SwiftUI solo recibe el texto del sistema y lo recorta a 12 caracteres; el problema fue causado por teclado fisico/remoto.
 Resolucion: no es bug de la app. Con teclado en pantalla del simulador se puede escribir correctamente. Queda documentado como limitacion del escritorio remoto.
 
 ### QA-002
@@ -130,8 +130,8 @@ Pasos: ver estado `Session ready`, tocar `Enviar reloj`.
 Resultado esperado: si no hay conexion efectiva, el estado previo no deberia sugerir que el Watch esta listo.
 Resultado real: antes de enviar decia `Session ready`; luego `Config sync unavailable`.
 Severidad: media.
-Estado: corregido en codigo, pendiente reprobar. El estado inicial ahora distingue `Watch reachable`, `Watch not reachable`, `Watch app unavailable` o `Watch not paired`. El boton de envio ya no cambia a `Enviado` cuando el envio falla; puede mostrar `En cola` o `No disponible`. Si el Watch esta reachable, se intenta envio inmediato ademas del application context.
-Resultado parcial de repro: con simuladores sin pair, la app muestra `Reloj no emparejado` y el boton cambia temporalmente a `No disponible`; comportamiento aprobado por producto. Se creo pair activo `F53F0C00-3900-4743-BAC1-E28328925E99` entre iPhone 17 Pro Simulator y Apple Watch Series 10 Simulator para continuar prueba de envio real en simulador.
+Estado: corregido y confirmado por QA. El estado inicial distingue `Watch reachable`, `Watch not reachable`, `Watch app unavailable` o `Watch not paired`. El boton de envio ya no cambia a `Enviado` cuando el envio falla; puede mostrar `En cola` o `No disponible`. Si el Watch esta reachable, se intenta envio inmediato ademas del application context.
+Resultado de repro: con simuladores sin pair, la app muestra `Reloj no emparejado` y el boton cambia temporalmente a `No disponible`; comportamiento aprobado por producto. Con pair activo `F53F0C00-3900-4743-BAC1-E28328925E99`, la configuracion se envio y el Watch confirmo recibo.
 
 ### QA-004
 
