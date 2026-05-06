@@ -99,7 +99,7 @@ Casos cubiertos por tests Swift:
 
 ## Bugs y decisiones conocidas
 
-- GitHub esta al dia hasta `2da2d37 Clarify free premium save flow`.
+- GitHub esta al dia hasta `f409d71 Update MVP QA checklist status`.
 - En Android Wear, el undo puede abrirse con long press sobre `+A` o `+B`; en el MVP iOS/watchOS todavia existen botones `Undo A` y `Undo B`. Esto queda como ajuste de paridad UX posterior al MVP.
 - No ajustar automaticamente diferencias iOS vs Android: algunas decisiones iOS/watchOS pueden pasar a ser oficiales y luego replicarse en Android, por ejemplo el boton de timer en Apple Watch/Wear OS.
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
