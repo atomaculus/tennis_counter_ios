@@ -103,7 +103,7 @@ Casos cubiertos por tests Swift:
 - En Android Wear, el undo puede abrirse con long press sobre `+A` o `+B`; en el MVP iOS/watchOS todavia existen botones `Undo A` y `Undo B`. Esto queda como ajuste de paridad UX posterior al MVP.
 - No ajustar automaticamente diferencias iOS vs Android: algunas decisiones iOS/watchOS pueden pasar a ser oficiales y luego replicarse en Android, por ejemplo el boton de timer en Apple Watch/Wear OS.
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
-- StoreKit usa producto `premium_unlock`; para release real falta configurarlo en App Store Connect o archivo `.storekit`.
+- StoreKit usa producto `premium_unlock`; ya fue creado en App Store Connect como compra no consumible con precio inicial `3.99`.
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
 - Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de TestFlight.
-- Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA y deben quitarse u ocultarse antes de producto final.
+- Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; verificar que no aparecen en build Release antes de subir a TestFlight.

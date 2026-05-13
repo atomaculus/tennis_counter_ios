@@ -8,6 +8,7 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - Build local: `CURRENT_PROJECT_VERSION = 1`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
+- App Store Connect app name: `PLAYCE Tennis & Padel`.
 - iPhone bundle id productivo: `com.agm.playce`.
 - Watch bundle id productivo: `com.agm.playce.watchkitapp`.
 - In-app purchase usado por StoreKit: `premium_unlock`.
@@ -22,9 +23,11 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - [x] Actualizar `project.yml` si los bundle ids productivos cambian.
 - [x] Crear App ID iOS y Watch App ID.
 - [x] Habilitar HealthKit para el Watch App ID.
+- [x] Crear app en App Store Connect con nombre `PLAYCE Tennis & Padel`.
 - [x] Confirmar product id de Premium: se mantiene `premium_unlock`.
-- [ ] Crear `premium_unlock` como in-app purchase no consumible en App Store Connect.
-- [ ] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`.
+- [x] Crear `premium_unlock` como in-app purchase no consumible en App Store Connect.
+- [x] Definir precio inicial de Premium: `3.99`.
+- [x] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`. Estan dentro de `#if DEBUG` y no entran al build Release.
 - [x] Definir URL publica de privacy policy: `https://tenniscounter.vercel.app/privacy`.
 - [ ] Definir categoria, edad, pricing y disponibilidad.
 - [ ] Preparar screenshots iPhone y Apple Watch.
@@ -42,7 +45,8 @@ Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
 
 ## App Store Connect - valores sugeridos
 
-- Nombre de app: `PLAYCE`.
+- Nombre de app en App Store Connect: `PLAYCE Tennis & Padel`.
+- Nombre visible dentro de la app: `PLAYCE`.
 - Bundle ID iPhone: `com.agm.playce`.
 - Bundle ID Watch: `com.agm.playce.watchkitapp`.
 - SKU: `PLAYCE-IOS-001` o cualquier identificador interno unico.
@@ -50,8 +54,22 @@ Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
 - Categoria secundaria sugerida: `Health & Fitness` si se mantiene HealthKit/workouts; si no, dejar sin secundaria o usar `Utilities`.
 - Disponibilidad: empezar con el pais principal de publicacion; ampliar despues si hace falta.
 - Precio app: gratis si Premium se monetiza con in-app purchase.
-- In-app purchase: no consumible, product id `premium_unlock`.
+- In-app purchase: no consumible, product id `premium_unlock`, precio inicial `3.99`.
 - Privacy Policy URL: `https://tenniscounter.vercel.app/privacy`.
+
+## In-App Purchase
+
+- Tipo: `Non-Consumable`.
+- Reference name: `PLAYCE Premium`.
+- Product ID: `premium_unlock`.
+- Precio inicial: `3.99`.
+- Display name: `PLAYCE Premium`.
+- Descripcion sugerida en ingles: `Unlock match history, stats, export and share tools.`
+- Descripcion sugerida en espanol: `Desbloquea historial de partidos, estadisticas, exportacion y herramientas para compartir.`
+- Offer codes: no configurados para el MVP inicial.
+- Imagen: no configurada por ahora.
+- Informacion para review:
+  `PLAYCE Premium is a non-consumable unlock for match history, match details, statistics, CSV export, photo attachment and share card features. The live tennis/padel counter remains available for free.`
 
 ## Permisos y privacidad
 
@@ -70,8 +88,14 @@ xcodegen generate
 xcodebuild test -project Playce.xcodeproj -scheme PlayceSharedTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 xcodebuild -project Playce.xcodeproj -scheme PlayceIOS -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 xcodebuild -project Playce.xcodeproj -scheme PlayceWatchApp -destination 'generic/platform=watchOS Simulator' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -project Playce.xcodeproj -scheme PlayceIOS -configuration Release -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build
 git diff --check
 ```
+
+## Verificacion Release
+
+- [x] `PlayceIOS` compila en configuracion `Release` para iOS Simulator.
+- [x] El binario Release no contiene los textos `Debug: Lock Premium` ni `Debug: Unlock Premium`.
 
 ## Fuentes Apple consultadas
 
