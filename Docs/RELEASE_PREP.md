@@ -8,8 +8,8 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - Build local: `CURRENT_PROJECT_VERSION = 1`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
-- iPhone bundle id productivo: `com.playce.ios`.
-- Watch bundle id productivo: `com.playce.ios.watchkitapp`.
+- iPhone bundle id productivo: `com.agm.playce`.
+- Watch bundle id productivo: `com.agm.playce.watchkitapp`.
 - In-app purchase usado por StoreKit: `premium_unlock`.
 - Privacy policy URL: `https://tenniscounter.vercel.app/privacy`.
 - Privacy manifest: `Resources/PrivacyInfo.xcprivacy`.
@@ -18,10 +18,10 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 ## Antes de App Store Connect
 
 - [x] Confirmar Team ID y cuenta Apple Developer que firmara la app: `Atilio Maculus` / `63U9A75L6R`.
-- [x] Confirmar bundle ids productivos con el owner de la cuenta Apple Developer: `com.playce.ios` y `com.playce.ios.watchkitapp`.
-- [x] Actualizar `project.yml` si los bundle ids productivos cambian. No aplica por ahora; se mantienen los actuales.
-- [ ] Crear App ID iOS y Watch App ID.
-- [ ] Habilitar HealthKit para el Watch App ID.
+- [x] Confirmar bundle ids productivos con el owner de la cuenta Apple Developer: `com.agm.playce` y `com.agm.playce.watchkitapp`.
+- [x] Actualizar `project.yml` si los bundle ids productivos cambian.
+- [x] Crear App ID iOS y Watch App ID.
+- [x] Habilitar HealthKit para el Watch App ID.
 - [x] Confirmar product id de Premium: se mantiene `premium_unlock`.
 - [ ] Crear `premium_unlock` como in-app purchase no consumible en App Store Connect.
 - [ ] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`.
@@ -43,8 +43,8 @@ Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
 ## App Store Connect - valores sugeridos
 
 - Nombre de app: `PLAYCE`.
-- Bundle ID iPhone: `com.playce.ios`.
-- Bundle ID Watch: `com.playce.ios.watchkitapp`.
+- Bundle ID iPhone: `com.agm.playce`.
+- Bundle ID Watch: `com.agm.playce.watchkitapp`.
 - SKU: `PLAYCE-IOS-001` o cualquier identificador interno unico.
 - Categoria primaria sugerida: `Sports`.
 - Categoria secundaria sugerida: `Health & Fitness` si se mantiene HealthKit/workouts; si no, dejar sin secundaria o usar `Utilities`.

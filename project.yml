@@ -28,7 +28,7 @@ targets:
         embed: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.playce.ios
+        PRODUCT_BUNDLE_IDENTIFIER: com.agm.playce
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: PLAYCE
         INFOPLIST_KEY_UILaunchScreen_Generation: true
@@ -47,10 +47,10 @@ targets:
       - path: Resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.playce.ios.watchkitapp
+        PRODUCT_BUNDLE_IDENTIFIER: com.agm.playce.watchkitapp
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: PLAYCE
-        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.playce.ios
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.agm.playce
         INFOPLIST_KEY_NSHealthShareUsageDescription: PLAYCE reads workout data to keep tennis sessions active on Apple Watch.
         INFOPLIST_KEY_NSHealthUpdateUsageDescription: PLAYCE writes tennis workouts while you track matches on Apple Watch.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -63,5 +63,5 @@ targets:
       - path: Tests
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.playce.ios.sharedtests
+        PRODUCT_BUNDLE_IDENTIFIER: com.agm.playce.sharedtests
         GENERATE_INFOPLIST_FILE: YES

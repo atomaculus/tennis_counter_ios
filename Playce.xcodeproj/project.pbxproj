@@ -346,7 +346,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios.sharedtests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce.sharedtests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -362,7 +362,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios.sharedtests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce.sharedtests;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -381,7 +381,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -396,8 +396,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PLAYCE;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PLAYCE reads workout data to keep tennis sessions active on Apple Watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PLAYCE writes tennis workouts while you track matches on Apple Watch.";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.playce.ios;
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios.watchkitapp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.agm.playce;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -480,8 +480,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PLAYCE;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "PLAYCE reads workout data to keep tennis sessions active on Apple Watch.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "PLAYCE writes tennis workouts while you track matches on Apple Watch.";
-				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.playce.ios;
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios.watchkitapp;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.agm.playce;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce.watchkitapp;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
@@ -501,7 +501,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.playce.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.agm.playce;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
