@@ -6,22 +6,26 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 - Version local: `MARKETING_VERSION = 1.0.0`.
 - Build local: `CURRENT_PROJECT_VERSION = 1`.
-- iPhone bundle id local: `com.playce.ios`.
-- Watch bundle id local: `com.playce.ios.watchkitapp`.
+- Apple Developer Team: `Atilio Maculus`.
+- Team ID: `63U9A75L6R`.
+- iPhone bundle id productivo: `com.playce.ios`.
+- Watch bundle id productivo: `com.playce.ios.watchkitapp`.
 - In-app purchase usado por StoreKit: `premium_unlock`.
+- Privacy policy URL: `https://tenniscounter.vercel.app/privacy`.
 - Privacy manifest: `Resources/PrivacyInfo.xcprivacy`.
 - HealthKit entitlement Watch: `Watch/PlayceWatchApp.entitlements`.
 
 ## Antes de App Store Connect
 
-- [ ] Confirmar Team ID y cuenta Apple Developer que firmara la app.
-- [ ] Confirmar bundle ids productivos con el owner de la cuenta Apple Developer.
-- [ ] Actualizar `project.yml` si los bundle ids productivos cambian.
+- [x] Confirmar Team ID y cuenta Apple Developer que firmara la app: `Atilio Maculus` / `63U9A75L6R`.
+- [x] Confirmar bundle ids productivos con el owner de la cuenta Apple Developer: `com.playce.ios` y `com.playce.ios.watchkitapp`.
+- [x] Actualizar `project.yml` si los bundle ids productivos cambian. No aplica por ahora; se mantienen los actuales.
 - [ ] Crear App ID iOS y Watch App ID.
 - [ ] Habilitar HealthKit para el Watch App ID.
-- [ ] Confirmar que `premium_unlock` existe como in-app purchase no consumible en App Store Connect.
+- [x] Confirmar product id de Premium: se mantiene `premium_unlock`.
+- [ ] Crear `premium_unlock` como in-app purchase no consumible en App Store Connect.
 - [ ] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`.
-- [ ] Definir URL publica de privacy policy.
+- [x] Definir URL publica de privacy policy: `https://tenniscounter.vercel.app/privacy`.
 - [ ] Definir categoria, edad, pricing y disponibilidad.
 - [ ] Preparar screenshots iPhone y Apple Watch.
 - [ ] Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`.
@@ -31,11 +35,23 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
 
 1. Correr el preflight local de este documento y confirmar que `main` esta limpio.
-2. Configurar signing/team/bundle ids productivos en `project.yml`.
-3. Crear App IDs, capabilities y el producto StoreKit `premium_unlock`.
-4. Quitar u ocultar los controles DEBUG visibles de premium.
-5. Generar build firmado para dispositivo fisico y validar iPhone + Apple Watch reales.
-6. Preparar metadata/screenshots/privacy y subir a TestFlight.
+2. Crear App IDs/capabilities y el producto StoreKit `premium_unlock`.
+3. Quitar u ocultar los controles DEBUG visibles de premium.
+4. Generar build firmado para dispositivo fisico y validar iPhone + Apple Watch reales.
+5. Preparar metadata/screenshots/privacy y subir a TestFlight.
+
+## App Store Connect - valores sugeridos
+
+- Nombre de app: `PLAYCE`.
+- Bundle ID iPhone: `com.playce.ios`.
+- Bundle ID Watch: `com.playce.ios.watchkitapp`.
+- SKU: `PLAYCE-IOS-001` o cualquier identificador interno unico.
+- Categoria primaria sugerida: `Sports`.
+- Categoria secundaria sugerida: `Health & Fitness` si se mantiene HealthKit/workouts; si no, dejar sin secundaria o usar `Utilities`.
+- Disponibilidad: empezar con el pais principal de publicacion; ampliar despues si hace falta.
+- Precio app: gratis si Premium se monetiza con in-app purchase.
+- In-app purchase: no consumible, product id `premium_unlock`.
+- Privacy Policy URL: `https://tenniscounter.vercel.app/privacy`.
 
 ## Permisos y privacidad
 
