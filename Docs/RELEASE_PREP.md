@@ -97,6 +97,21 @@ git diff --check
 - [x] `PlayceIOS` compila en configuracion `Release` para iOS Simulator.
 - [x] El binario Release no contiene los textos `Debug: Lock Premium` ni `Debug: Unlock Premium`.
 
+## Archive firmado
+
+- [x] Cuenta Apple Developer agregada en Xcode: `Atilio Maculus` / `63U9A75L6R`.
+- [x] Signing automatico seleccionado para `PlayceIOS` y `PlayceWatchApp`.
+- [x] HealthKit agregado al target `PlayceWatchApp` y persistido en `project.yml`.
+- [ ] Crear o descargar certificado `Apple Distribution` en esta Mac.
+- [ ] Generar archive firmado para `Any iOS Device`.
+- [ ] Subir build a TestFlight.
+
+Intento de archive por terminal:
+
+- Resultado: bloqueado.
+- Motivo: esta Mac solo tiene certificados `Apple Development`; no aparece un certificado `Apple Distribution` en `security find-identity -v -p codesigning`.
+- Error adicional: Xcode intento generar perfiles de desarrollo y el team no tiene dispositivos registrados. Para TestFlight no deberia depender de dispositivos, pero primero hace falta resolver firma de distribucion.
+
 ## Fuentes Apple consultadas
 
 - HealthKit usage descriptions: https://developer.apple.com/documentation/BundleResources/Information-Property-List/NSHealthShareUsageDescription

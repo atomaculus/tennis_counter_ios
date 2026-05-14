@@ -41,6 +41,8 @@ targets:
     platform: watchOS
     entitlements:
       path: Watch/PlayceWatchApp.entitlements
+      properties:
+        com.apple.developer.healthkit: true
     sources:
       - path: Watch
       - path: Shared
