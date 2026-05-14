@@ -105,5 +105,5 @@ Casos cubiertos por tests Swift:
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
 - StoreKit usa producto `premium_unlock`; ya fue creado en App Store Connect como compra no consumible con precio inicial `3.99`.
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
-- Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de TestFlight.
-- Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; verificar que no aparecen en build Release antes de subir a TestFlight.
+- Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de release publico.
+- Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; se verifico que no aparecen en build Release antes de subir a App Store Connect.

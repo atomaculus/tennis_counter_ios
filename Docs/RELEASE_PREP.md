@@ -103,17 +103,20 @@ git diff --check
 - [x] Signing automatico seleccionado para `PlayceIOS` y `PlayceWatchApp`.
 - [x] HealthKit agregado al target `PlayceWatchApp` y persistido en `project.yml`.
 - [x] Crear o descargar certificado `Apple Distribution` en esta Mac.
-- [ ] Crear/descargar provisioning profiles validos para archive.
-- [ ] Generar archive firmado para `Any iOS Device`.
-- [ ] Subir build a TestFlight.
+- [x] Crear/descargar provisioning profiles validos para archive.
+- [x] Generar archive firmado para `Any iOS Device`.
+- [x] Exportar `.ipa` para App Store Connect.
+- [x] Subir build a App Store Connect/TestFlight.
+- [ ] Esperar procesamiento del build en App Store Connect.
+- [ ] Validar build disponible en TestFlight.
 
-Intento de archive por terminal:
+Resultado:
 
-- Resultado: bloqueado.
-- Certificados disponibles: `Apple Development` y `Apple Distribution: Atilio Maculus (63U9A75L6R)`.
-- Motivo actual: Xcode automatic signing intenta usar/generar provisioning profiles de desarrollo para el archive y el team no tiene dispositivos registrados.
-- Siguiente accion posible A: registrar un iPhone fisico en Apple Developer para que Xcode pueda crear perfiles de desarrollo automaticos.
-- Siguiente accion posible B: crear perfiles de distribucion/App Store para `com.agm.playce` y `com.agm.playce.watchkitapp`, descargarlos en esta Mac y configurar signing manual para Release.
+- Se registro un iPhone fisico en Apple Developer para destrabar automatic signing.
+- `xcodebuild archive` genero `build/Playce.xcarchive`.
+- `xcodebuild -exportArchive` genero `build/export/PlayceIOS.ipa`.
+- `xcodebuild -exportArchive` con `destination=upload` subio el build a App Store Connect.
+- App Store Connect respondio: `Uploaded package is processing` / `Upload succeeded`.
 
 ## Fuentes Apple consultadas
 
