@@ -47,6 +47,9 @@ Prioridad actual: alta. Se puede validar en iPhone fisico o iPhone Simulator.
 - [x] Exportar CSV.
 - [x] Verificar que el modo gratis mantiene usable el contador y bloquea features premium.
 - [x] En `DEBUG`, usar unlock premium local y repetir History/Stats/Share.
+- [x] Instalar build `1.0.0 (1)` desde TestFlight en iPhone fisico.
+- [x] Validar compra sandbox/TestFlight de `premium_unlock`.
+- [x] Confirmar que Premium desbloquea History/Stats/Share en build TestFlight.
 
 ## Checklist manual Apple Watch
 
@@ -104,6 +107,7 @@ Casos cubiertos por tests Swift:
 - No ajustar automaticamente diferencias iOS vs Android: algunas decisiones iOS/watchOS pueden pasar a ser oficiales y luego replicarse en Android, por ejemplo el boton de timer en Apple Watch/Wear OS.
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
 - StoreKit usa producto `premium_unlock`; ya fue creado en App Store Connect como compra no consumible con precio inicial `3.99`.
+- StoreKit real fue validado en iPhone fisico via TestFlight. Para que el producto cargue, `premium_unlock` debe estar completo en App Store Connect, asociado a la version `1.0.0` y con Business/Tax/Banking en estado apto para ventas.
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
 - Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de release publico.
 - Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; se verifico que no aparecen en build Release antes de subir a App Store Connect.

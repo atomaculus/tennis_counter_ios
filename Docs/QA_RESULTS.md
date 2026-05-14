@@ -5,7 +5,7 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 ## Estado operativo
 
 - Fecha de inicio QA: 2026-05-05.
-- Commit actual pusheado: `2da2d37 Clarify free premium save flow`.
+- Commit actual pusheado antes de esta actualizacion: `fa8dafb Document TestFlight processing status`.
 - GitHub push: al dia contra `origin/main`.
 - Dispositivos disponibles hoy:
   - iPhone fisico: disponible.
@@ -20,6 +20,7 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 3. Apple Watch Simulator: scorer y HealthKit no-crash.
 4. iPhone Simulator + Apple Watch Simulator emparejados: sync basico.
 5. Apple Watch fisico futuro: sync real y HealthKit real antes de TestFlight.
+6. App Store release futuro: screenshots finales, metadata final y App Review.
 
 ## Sesion 1 - iPhone Simulator
 
@@ -88,6 +89,19 @@ Resultado:
 
 - Estado: sync basico aprobado en simuladores emparejados.
 - Bugs encontrados: QA-007, QA-008.
+
+## Sesion 4 - iPhone fisico TestFlight
+
+- [x] Build `1.0.0 (1)` instalado desde TestFlight en iPhone fisico.
+- [x] La app abre y el contador funciona correctamente en el dispositivo fisico.
+- [x] `premium_unlock` completo en App Store Connect y asociado a la version `1.0.0`.
+- [x] Compra sandbox/ficticia de Premium ejecutada correctamente desde la app.
+- [x] Premium queda desbloqueado y las funciones premium funcionan en build TestFlight.
+
+Resultado:
+
+- Estado: aprobado para iPhone fisico/TestFlight en el alcance probado.
+- Nota: la compra no aparecia mientras `premium_unlock` no estaba completamente listo/asociado y la configuracion Business/Tax/Banking seguia pendiente.
 
 ## Bugs
 
@@ -187,6 +201,15 @@ Resultado esperado: el contador sigue funcionando gratis; History/Stats quedan b
 Resultado real: comportamiento aprobado por QA. El boton muestra `Guardado para Premium`, el mensaje indica que se vera en Historial al desbloquear Premium y el partido aparece en History luego del unlock DEBUG.
 Severidad: baja.
 Estado: corregido y confirmado por QA.
+
+### QA-010
+
+Ambiente: iPhone fisico con build TestFlight `1.0.0 (1)`.
+Pasos: instalar desde TestFlight, abrir app, tocar Premium.
+Resultado esperado: StoreKit muestra la compra sandbox/ficticia de `premium_unlock` y, al completarla, Premium queda desbloqueado.
+Resultado real inicial: la app mostraba `Premium no esta disponible todavia. Intenta mas tarde.`
+Severidad: alta para release.
+Estado: corregido por configuracion de App Store Connect. Faltaba completar metadata/asociacion de la primera IAP a la version `1.0.0` y avanzar con Business/Tax/Banking. Luego de completar eso, la compra sandbox funciono y Premium desbloqueo correctamente.
 
 ## Decisiones de producto pendientes
 

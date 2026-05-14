@@ -27,11 +27,12 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - [x] Confirmar product id de Premium: se mantiene `premium_unlock`.
 - [x] Crear `premium_unlock` como in-app purchase no consumible en App Store Connect.
 - [x] Definir precio inicial de Premium: `3.99`.
+- [x] Completar metadata de `premium_unlock`, asociarlo a la version `1.0.0` y validar compra sandbox en TestFlight.
 - [x] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`. Estan dentro de `#if DEBUG` y no entran al build Release.
 - [x] Definir URL publica de privacy policy: `https://tenniscounter.vercel.app/privacy`.
-- [ ] Definir categoria, edad, pricing y disponibilidad.
+- [x] Definir categoria, edad, pricing y disponibilidad inicial.
 - [ ] Preparar screenshots iPhone y Apple Watch.
-- [ ] Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`.
+- [ ] Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`. iPhone fisico validado via TestFlight; falta Apple Watch fisico.
 
 ## Proxima reanudacion
 
@@ -66,10 +67,12 @@ Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
 - Display name: `PLAYCE Premium`.
 - Descripcion sugerida en ingles: `Unlock match history, stats, export and share tools.`
 - Descripcion sugerida en espanol: `Desbloquea historial de partidos, estadisticas, exportacion y herramientas para compartir.`
+- Estado App Store Connect: completo, asociado a la version `1.0.0` y listo para enviar junto con la primera version de la app.
 - Offer codes: no configurados para el MVP inicial.
 - Imagen: no configurada por ahora.
 - Informacion para review:
   `PLAYCE Premium is a non-consumable unlock for match history, match details, statistics, CSV export, photo attachment and share card features. The live tennis/padel counter remains available for free.`
+- Resultado TestFlight: compra sandbox/ficticia ejecutada correctamente en iPhone fisico y Premium desbloquea la app.
 
 ## Permisos y privacidad
 
@@ -110,8 +113,9 @@ git diff --check
 - [x] Resolver export compliance: la app no usa criptografia propia.
 - [x] Esperar procesamiento del build en App Store Connect.
 - [x] Validar build disponible en App Store Connect/TestFlight: estado `Lista para enviar`.
-- [ ] Agregar testers internos o externos.
-- [ ] Instalar build via TestFlight y ejecutar QA en iPhone fisico.
+- [x] Agregar tester e instalar build via TestFlight en iPhone fisico.
+- [x] Ejecutar QA basico en iPhone fisico via TestFlight.
+- [x] Validar StoreKit real en TestFlight con compra sandbox de `premium_unlock`.
 
 Resultado:
 
@@ -122,6 +126,7 @@ Resultado:
 - App Store Connect respondio: `Uploaded package is processing` / `Upload succeeded`.
 - Se completo export compliance indicando que la app no usa criptografia propia.
 - App Store Connect muestra la version `1.0.0` como `Lista para enviar`.
+- `premium_unlock` inicialmente no cargaba en TestFlight porque faltaba completar metadata/asociacion a version y la configuracion comercial/fiscal estaba en proceso. Al completar metadata, asociar el IAP a `1.0.0` y avanzar con Business/Tax/Banking, StoreKit devolvio el producto y la compra sandbox funciono.
 
 ## Fuentes Apple consultadas
 
