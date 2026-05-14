@@ -19,7 +19,7 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 2. iPhone Simulator: confirmar que el comportamiento coincide con fisico.
 3. Apple Watch Simulator: scorer y HealthKit no-crash.
 4. iPhone Simulator + Apple Watch Simulator emparejados: sync basico.
-5. Apple Watch fisico futuro: sync real y HealthKit real antes de TestFlight.
+5. Apple Watch fisico futuro: sync real y HealthKit real antes del release publico.
 6. App Store release futuro: screenshots finales, metadata final y App Review.
 
 ## Sesion 1 - iPhone Simulator
