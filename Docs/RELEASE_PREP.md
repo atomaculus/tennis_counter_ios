@@ -107,8 +107,11 @@ git diff --check
 - [x] Generar archive firmado para `Any iOS Device`.
 - [x] Exportar `.ipa` para App Store Connect.
 - [x] Subir build a App Store Connect/TestFlight.
-- [ ] Esperar procesamiento del build en App Store Connect.
-- [ ] Validar build disponible en TestFlight.
+- [x] Resolver export compliance: la app no usa criptografia propia.
+- [x] Esperar procesamiento del build en App Store Connect.
+- [x] Validar build disponible en App Store Connect/TestFlight: estado `Lista para enviar`.
+- [ ] Agregar testers internos o externos.
+- [ ] Instalar build via TestFlight y ejecutar QA en iPhone fisico.
 
 Resultado:
 
@@ -117,6 +120,8 @@ Resultado:
 - `xcodebuild -exportArchive` genero `build/export/PlayceIOS.ipa`.
 - `xcodebuild -exportArchive` con `destination=upload` subio el build a App Store Connect.
 - App Store Connect respondio: `Uploaded package is processing` / `Upload succeeded`.
+- Se completo export compliance indicando que la app no usa criptografia propia.
+- App Store Connect muestra la version `1.0.0` como `Lista para enviar`.
 
 ## Fuentes Apple consultadas
 
