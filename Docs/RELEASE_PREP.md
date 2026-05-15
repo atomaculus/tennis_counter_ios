@@ -5,7 +5,7 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 ## Estado actual
 
 - Version local: `MARKETING_VERSION = 1.0.0`.
-- Build local: `CURRENT_PROJECT_VERSION = 1`.
+- Build local: `CURRENT_PROJECT_VERSION = 2`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
@@ -31,7 +31,7 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - [x] Quitar u ocultar controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium`. Estan dentro de `#if DEBUG` y no entran al build Release.
 - [x] Definir URL publica de privacy policy: `https://tenniscounter.vercel.app/privacy`.
 - [x] Definir categoria, edad, pricing y disponibilidad inicial.
-- [ ] Preparar screenshots iPhone y Apple Watch.
+- [x] Preparar screenshots iPhone y Apple Watch en `/Users/nicolasolivares/AGM/screenshots_app_store`.
 - [ ] Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`. iPhone fisico validado via TestFlight; falta Apple Watch fisico.
 
 ## Proxima reanudacion
@@ -109,7 +109,8 @@ git diff --check
 - [x] Crear/descargar provisioning profiles validos para archive.
 - [x] Generar archive firmado para `Any iOS Device`.
 - [x] Exportar `.ipa` para App Store Connect.
-- [x] Subir build a App Store Connect/TestFlight.
+- [x] Subir build inicial a App Store Connect/TestFlight: `1.0.0 (1)`.
+- [x] Subir build actualizado a App Store Connect/TestFlight: `1.0.0 (2)`.
 - [x] Resolver export compliance: la app no usa criptografia propia.
 - [x] Esperar procesamiento del build en App Store Connect.
 - [x] Validar build disponible en App Store Connect/TestFlight: estado `Lista para enviar`.
@@ -124,6 +125,7 @@ Resultado:
 - `xcodebuild -exportArchive` genero `build/export/PlayceIOS.ipa`.
 - `xcodebuild -exportArchive` con `destination=upload` subio el build a App Store Connect.
 - App Store Connect respondio: `Uploaded package is processing` / `Upload succeeded`.
+- El build `1.0.0 (2)` se subio correctamente el 2026-05-15 despues de regenerar screenshots Release y ajustar el texto de estado del Watch.
 - Se completo export compliance indicando que la app no usa criptografia propia.
 - App Store Connect muestra la version `1.0.0` como `Lista para enviar`.
 - `premium_unlock` inicialmente no cargaba en TestFlight porque faltaba completar metadata/asociacion a version y la configuracion comercial/fiscal estaba en proceso. Al completar metadata, asociar el IAP a `1.0.0` y avanzar con Business/Tax/Banking, StoreKit devolvio el producto y la compra sandbox funciono.
