@@ -64,7 +64,7 @@ Prioridad actual: media-alta. Hoy se valida en Apple Watch Simulator. La validac
 - [x] Resetear game y match.
 - [x] Terminar partido desde el Watch.
 - [x] Confirmar que la pantalla no se cierra inesperadamente.
-- [ ] Confirmar que el estado de sync se muestra de forma entendible para producto final. Para testing esta aprobado; falta quitar copy tecnico tipo `ACK inserted`.
+- [x] Confirmar que el estado de sync se muestra de forma entendible para producto final. El build `1.0.0 (2)` reemplaza copy tecnico tipo `ACK inserted` por estados user-facing.
 
 ## Checklist manual sync iPhone/Watch
 
@@ -102,12 +102,13 @@ Casos cubiertos por tests Swift:
 
 ## Bugs y decisiones conocidas
 
-- GitHub esta al dia hasta `f409d71 Update MVP QA checklist status`.
+- GitHub esta al dia hasta el ultimo commit pusheado de release prep. Ver `git log --oneline -3`.
 - En Android Wear, el undo puede abrirse con long press sobre `+A` o `+B`; en el MVP iOS/watchOS todavia existen botones `Undo A` y `Undo B`. Esto queda como ajuste de paridad UX posterior al MVP.
 - No ajustar automaticamente diferencias iOS vs Android: algunas decisiones iOS/watchOS pueden pasar a ser oficiales y luego replicarse en Android, por ejemplo el boton de timer en Apple Watch/Wear OS.
 - El segundo reloj espectador de Wear OS no tiene equivalente directo en watchOS estandar iPhone + Apple Watch.
 - StoreKit usa producto `premium_unlock`; ya fue creado en App Store Connect como compra no consumible con precio inicial `3.99`.
 - StoreKit real fue validado en iPhone fisico via TestFlight. Para que el producto cargue, `premium_unlock` debe estar completo en App Store Connect, asociado a la version `1.0.0` y con Business/Tax/Banking en estado apto para ventas.
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
-- Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales antes de release publico.
+- Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales cuando haya dispositivo disponible.
 - Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; se verifico que no aparecen en build Release antes de subir a App Store Connect.
+- La version `1.0.0` fue enviada a App Review con build `1.0.0 (2)` y `premium_unlock` asociado. Queda pendiente la respuesta de Apple.

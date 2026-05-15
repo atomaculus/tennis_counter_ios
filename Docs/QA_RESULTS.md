@@ -5,7 +5,7 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 ## Estado operativo
 
 - Fecha de inicio QA: 2026-05-05.
-- Commit actual pusheado antes de esta actualizacion: `fa8dafb Document TestFlight processing status`.
+- Commit base antes de esta actualizacion: `7ec7db8 Bump iOS build for App Store upload`.
 - GitHub push: al dia contra `origin/main`.
 - Dispositivos disponibles hoy:
   - iPhone fisico: disponible.
@@ -19,8 +19,8 @@ Este archivo registra resultados reales de QA manual. Marcar cada item cuando el
 2. iPhone Simulator: confirmar que el comportamiento coincide con fisico.
 3. Apple Watch Simulator: scorer y HealthKit no-crash.
 4. iPhone Simulator + Apple Watch Simulator emparejados: sync basico.
-5. Apple Watch fisico futuro: sync real y HealthKit real antes del release publico.
-6. App Store release futuro: screenshots finales, metadata final y App Review.
+5. Apple Watch fisico futuro: sync real y HealthKit real cuando haya dispositivo disponible.
+6. App Store Review: version `1.0.0` enviada con build `1.0.0 (2)`; esperar respuesta de Apple.
 
 ## Sesion 1 - iPhone Simulator
 
@@ -191,7 +191,7 @@ Pasos: guardar partido terminado desde Watch y observar status bar.
 Resultado esperado: durante testing, el status ayuda a confirmar sync; para usuario final, no deberia exponer mensajes tecnicos internos.
 Resultado real: la barra muestra mensajes como `ACK inserted`, utiles para QA pero demasiado tecnicos para producto final.
 Severidad: baja.
-Estado: decision de producto. Mantener por ahora para testing; antes de release revisar copy/visibilidad de status tecnico. Producto valora `broadcasting` como estado visible, pero no mensajes internos tipo ACK.
+Estado: corregido para release. El build `1.0.0 (2)` mantiene estados utiles como broadcasting/sync, pero traduce mensajes tecnicos tipo `ACK inserted` a copy user-facing como `PARTIDO GUARDADO` o `RELOJ LISTO`.
 
 ### QA-009
 
@@ -220,5 +220,5 @@ Estado: corregido por configuracion de App Store Connect. Faltaba completar meta
 - Evaluar replicar en Android mobile el boton de eliminar partido desde detalle.
 - Decidir si iOS/watchOS mantiene botones Undo o adopta long press como Android/Wear.
 - Decidir si alguna diferencia visual de iOS debe preservarse por ser mas nativa de Apple.
-- Quitar u ocultar los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` antes de producto final; son solo herramienta de QA local.
+- Los controles `Debug: Lock Premium` / `Debug: Unlock Premium` quedan disponibles solo en builds `DEBUG`; no aparecen en Release/TestFlight.
 - Revisar `Docs/ANDROID_BACKPORT_CANDIDATES.md` antes de hacer cambios de paridad Android/iOS.

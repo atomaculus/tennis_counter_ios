@@ -117,6 +117,8 @@ git diff --check
 - [x] Agregar tester e instalar build via TestFlight en iPhone fisico.
 - [x] Ejecutar QA basico en iPhone fisico via TestFlight.
 - [x] Validar StoreKit real en TestFlight con compra sandbox de `premium_unlock`.
+- [x] Cargar metadata, screenshots, categoria, App Privacy y datos para review.
+- [x] Enviar version `1.0.0` a App Review con build `1.0.0 (2)` y `premium_unlock` asociado.
 
 Resultado:
 
@@ -128,6 +130,7 @@ Resultado:
 - El build `1.0.0 (2)` se subio correctamente el 2026-05-15 despues de regenerar screenshots Release y ajustar el texto de estado del Watch.
 - Se completo export compliance indicando que la app no usa criptografia propia.
 - App Store Connect muestra la version `1.0.0` como `Lista para enviar`.
+- La version `1.0.0` fue enviada a App Review con build `1.0.0 (2)`. Apple indico una espera estimada de hasta 48 horas para respuesta.
 - `premium_unlock` inicialmente no cargaba en TestFlight porque faltaba completar metadata/asociacion a version y la configuracion comercial/fiscal estaba en proceso. Al completar metadata, asociar el IAP a `1.0.0` y avanzar con Business/Tax/Banking, StoreKit devolvio el producto y la compra sandbox funciono.
 
 ## Fuentes Apple consultadas
