@@ -216,13 +216,30 @@ struct WatchRootView: View {
     }
 
     private func statusLabel(_ text: String) -> some View {
-        Text(text.uppercased())
+        Text(userFacingStatus(text))
             .font(.caption2.weight(.semibold))
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 4)
             .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: Capsule())
             .overlay(Capsule().stroke(Color(red: 0.17, green: 0.17, blue: 0.17), lineWidth: 1))
+    }
+
+    private func userFacingStatus(_ text: String) -> String {
+        let status = text.lowercased()
+        if status.contains("broadcast") || status.contains("watching live") {
+            return "TRANSMITIENDO"
+        }
+        if status.contains("config") {
+            return "CONFIGURACION LISTA"
+        }
+        if status.contains("saved") || status.contains("stored") || status.contains("inserted") || status.contains("duplicate") || status.contains("match sync") {
+            return "PARTIDO GUARDADO"
+        }
+        if status.contains("queued") || status.contains("sending") || status.contains("retry") {
+            return "SINCRONIZANDO"
+        }
+        return "RELOJ LISTO"
     }
 
     private func compactStat(_ title: String, _ value: String) -> some View {
