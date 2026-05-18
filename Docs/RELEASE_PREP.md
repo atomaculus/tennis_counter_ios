@@ -5,7 +5,7 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 ## Estado actual
 
 - Version local: `MARKETING_VERSION = 1.0.0`.
-- Build local: `CURRENT_PROJECT_VERSION = 2`.
+- Build local: `CURRENT_PROJECT_VERSION = 3`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
@@ -111,6 +111,7 @@ git diff --check
 - [x] Exportar `.ipa` para App Store Connect.
 - [x] Subir build inicial a App Store Connect/TestFlight: `1.0.0 (1)`.
 - [x] Subir build actualizado a App Store Connect/TestFlight: `1.0.0 (2)`.
+- [x] Resolver rechazo Guideline 4 por icono Apple Watch con fondo negro y subir build corregido: `1.0.0 (3)`.
 - [x] Resolver export compliance: la app no usa criptografia propia.
 - [x] Esperar procesamiento del build en App Store Connect.
 - [x] Validar build disponible en App Store Connect/TestFlight: estado `Lista para enviar`.
@@ -128,6 +129,9 @@ Resultado:
 - `xcodebuild -exportArchive` con `destination=upload` subio el build a App Store Connect.
 - App Store Connect respondio: `Uploaded package is processing` / `Upload succeeded`.
 - El build `1.0.0 (2)` se subio correctamente el 2026-05-15 despues de regenerar screenshots Release y ajustar el texto de estado del Watch.
+- App Review rechazo `1.0.0 (2)` el 2026-05-18 por Guideline 4: el icono de Apple Watch usaba fondo negro y no aparentaba ser circular.
+- Se agrego `WatchAppIcon` separado para watchOS con fondo gris oscuro no negro, manteniendo `AppIcon` para iPhone.
+- El build `1.0.0 (3)` se subio correctamente el 2026-05-18 y quedo procesando en App Store Connect.
 - Se completo export compliance indicando que la app no usa criptografia propia.
 - App Store Connect muestra la version `1.0.0` como `Lista para enviar`.
 - La version `1.0.0` fue enviada a App Review con build `1.0.0 (2)`. Apple indico una espera estimada de hasta 48 horas para respuesta.
