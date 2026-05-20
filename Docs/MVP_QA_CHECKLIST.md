@@ -111,4 +111,4 @@ Casos cubiertos por tests Swift:
 - HealthKit ya no crashea en simulador porque el target Watch incluye `NSHealthShareUsageDescription` y `NSHealthUpdateUsageDescription`, pero entitlements/firma deben validarse en dispositivo real.
 - Sync WatchConnectivity fue validado con iPhone Simulator + Apple Watch Simulator emparejados; la validacion final debe hacerse con iPhone + Apple Watch reales cuando haya dispositivo disponible.
 - Los controles visibles `Debug: Lock Premium` / `Debug: Unlock Premium` son solo para QA en builds Debug; se verifico que no aparecen en build Release antes de subir a App Store Connect.
-- La version `1.0.0` fue enviada a App Review con build `1.0.0 (2)` y `premium_unlock` asociado. Queda pendiente la respuesta de Apple.
+- La version `1.0.0` fue aprobada por App Review con build `1.0.0 (3)` y `premium_unlock` asociado. Queda pendiente la decision operativa de distribucion/publicacion.
