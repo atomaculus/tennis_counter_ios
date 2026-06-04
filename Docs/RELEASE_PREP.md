@@ -4,8 +4,8 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 ## Estado actual
 
-- Version local: `MARKETING_VERSION = 1.0.0`.
-- Build local: `CURRENT_PROJECT_VERSION = 3`.
+- Version local: `MARKETING_VERSION = 1.0.1`.
+- Build local: `CURRENT_PROJECT_VERSION = 4`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
@@ -36,7 +36,9 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 ## Proxima reanudacion
 
-Cuando la cuenta Apple Developer este aprobada, retomar por estos pasos:
+Para la version `1.0.1 (4)`, el objetivo es subir un build nuevo sin cambios funcionales para habilitar una nueva revision de App Store con screenshots actualizados.
+
+Cuando se prepare una nueva revision, retomar por estos pasos:
 
 1. Correr el preflight local de este documento y confirmar que `main` esta limpio.
 2. Crear App IDs/capabilities y el producto StoreKit `premium_unlock`.
