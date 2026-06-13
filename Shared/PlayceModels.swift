@@ -235,6 +235,57 @@ struct MatchShareCardData: Codable, Hashable {
     }()
 }
 
+/// Vertical anchor presets for the movable stat block on a share card.
+enum ShareCardAnchor: String, Codable, CaseIterable, Hashable {
+    case top
+    case center
+    case bottom
+
+    /// Vertical placement as a fraction of the card height (0 = top, 1 = bottom).
+    var verticalFraction: Double {
+        switch self {
+        case .top: return 0.20
+        case .center: return 0.50
+        case .bottom: return 0.80
+        }
+    }
+}
+
+/// User-editable layout + content configuration for a share card.
+/// Names are entered at share time because finished matches do not persist them.
+struct ShareCardLayout: Codable, Hashable {
+    var anchor: ShareCardAnchor = .bottom
+    /// Fine-adjustment offset applied on top of the anchor, as a fraction of card size.
+    var offsetX: Double = 0
+    var offsetY: Double = 0
+
+    var showSetScores: Bool = true
+    var showDuration: Bool = true
+    var showDate: Bool = false
+
+    var playerAName: String = ""
+    var playerBName: String = ""
+
+    var trimmedPlayerA: String { playerAName.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var trimmedPlayerB: String { playerBName.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    var showPlayers: Bool { !trimmedPlayerA.isEmpty || !trimmedPlayerB.isEmpty }
+
+    var playersText: String? {
+        guard showPlayers else { return nil }
+        let left = trimmedPlayerA.isEmpty ? "—" : trimmedPlayerA
+        let right = trimmedPlayerB.isEmpty ? "—" : trimmedPlayerB
+        return "\(left)  vs  \(right)"
+    }
+
+    /// Resets fine offset; used when picking a preset anchor.
+    mutating func apply(anchor newAnchor: ShareCardAnchor) {
+        anchor = newAnchor
+        offsetX = 0
+        offsetY = 0
+    }
+}
+
 struct LiveMatchPayload: Codable, Hashable {
     var playerAPoints: Int
     var playerAGames: Int

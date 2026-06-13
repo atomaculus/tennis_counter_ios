@@ -935,7 +935,7 @@ struct MatchDetailView: View {
     @EnvironmentObject private var premiumStore: PremiumStore
 
     @State private var pickedPhoto: PhotosPickerItem?
-    @State private var shareCardURL: ShareURLItem?
+    @State private var editorRecord: FinishedMatchRecord?
     @State private var shareError: String?
     @State private var isConfirmingDelete = false
 
@@ -1001,11 +1001,17 @@ struct MatchDetailView: View {
                     }
                 }
 
-                ShareCardView(data: MatchShareCardData(record: record), photoURL: historyStore.photoURL(for: record))
-                    .frame(height: 400)
+                Button {
+                    editorRecord = record
+                } label: {
+                    ShareCardView(data: MatchShareCardData(record: record), photoURL: historyStore.photoURL(for: record))
+                        .aspectRatio(9.0 / 16.0, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
 
-                PlayceButton("Share your Playce", style: .solid) {
-                    renderShareCard(record: record)
+                PlayceButton("Customize & share", style: .solid) {
+                    editorRecord = record
                 }
 
                 PhotosPicker(selection: $pickedPhoto, matching: .images) {
@@ -1055,8 +1061,12 @@ struct MatchDetailView: View {
             }
             Button("Cancel", role: .cancel) {}
         }
-        .sheet(item: $shareCardURL) { item in
-            ShareSheet(items: [item.url])
+        .sheet(item: $editorRecord) { record in
+            ShareCardEditorView(
+                data: MatchShareCardData(record: record),
+                photoURL: historyStore.photoURL(for: record),
+                matchID: record.id
+            )
         }
         .task(id: pickedPhoto) {
             guard let pickedPhoto else { return }
@@ -1074,26 +1084,6 @@ struct MatchDetailView: View {
         }
     }
 
-    private func renderShareCard(record: FinishedMatchRecord) {
-        let renderer = ImageRenderer(
-            content: ShareCardView(data: MatchShareCardData(record: record), photoURL: historyStore.photoURL(for: record))
-                .frame(
-                    width: CGFloat(MatchShareCardData.exportWidth),
-                    height: CGFloat(MatchShareCardData.exportHeight)
-                )
-        )
-        renderer.scale = 1
-        if let image = renderer.uiImage {
-            do {
-                shareCardURL = ShareURLItem(url: try SharePNGExporter.export(image: image, matchID: record.id))
-                shareError = nil
-            } catch {
-                shareError = "Failed to render share card."
-            }
-        } else {
-            shareError = "Failed to render share card."
-        }
-    }
 }
 
 struct PremiumLockedDetailView: View {
@@ -1338,76 +1328,155 @@ struct ExportCSVCard: View {
     }
 }
 
+private struct ShareBlockSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        let next = nextValue()
+        if next != .zero { value = next }
+    }
+}
+
 struct ShareCardView: View {
     let data: MatchShareCardData
     let photoURL: URL?
+    var layout: ShareCardLayout = ShareCardLayout()
+    /// Corner radius is dropped for the export render so the PNG fills edge-to-edge.
+    var rounded: Bool = true
+    /// Reports the measured stat-block size so an editor can clamp drag offsets.
+    var onBlockSizeChange: ((CGSize) -> Void)? = nil
+
+    @State private var blockSize: CGSize = .zero
 
     var body: some View {
-        ZStack {
-            background
+        GeometryReader { geo in
+            let size = geo.size
+            ZStack {
+                background
 
-            LinearGradient(
-                colors: [
-                    .black.opacity(0.15),
-                    .black.opacity(0.35),
-                    .black.opacity(0.86)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
+                // Light, symmetric vignette so the photo reads as intentional
+                // without committing the design to a fixed dark region.
+                LinearGradient(
+                    colors: [.black.opacity(0.20), .clear, .black.opacity(0.28)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+
+                statBlock(width: size.width)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: ShareBlockSizeKey.self, value: proxy.size)
+                        }
+                    )
+                    .position(blockCenter(in: size))
+            }
+            .onPreferenceChange(ShareBlockSizeKey.self) { size in
+                blockSize = size
+                onBlockSizeChange?(size)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: rounded ? 28 : 0))
+        .overlay(
+            rounded
+                ? RoundedRectangle(cornerRadius: 28).stroke(PlaycePalette.border, lineWidth: 1)
+                : nil
+        )
+    }
+
+    /// Resolves the anchor + fine offset into a clamped center point so the
+    /// block always stays fully inside the card, at any render resolution.
+    private func blockCenter(in size: CGSize) -> CGPoint {
+        let rawX = (0.5 + layout.offsetX) * size.width
+        let rawY = (layout.anchor.verticalFraction + layout.offsetY) * size.height
+        let margin = size.width * 0.035
+        let halfW = blockSize.width / 2
+        let halfH = blockSize.height / 2
+
+        let x: CGFloat
+        if halfW * 2 + margin * 2 >= size.width {
+            x = size.width / 2
+        } else {
+            x = min(max(rawX, halfW + margin), size.width - halfW - margin)
+        }
+        let y: CGFloat
+        if halfH * 2 + margin * 2 >= size.height {
+            y = size.height / 2
+        } else {
+            y = min(max(rawY, halfH + margin), size.height - halfH - margin)
+        }
+        return CGPoint(x: x, y: y)
+    }
+
+    @ViewBuilder
+    private func statBlock(width: CGFloat) -> some View {
+        let scoreSize = width * 0.135
+        let parcialesSize = width * 0.05
+        let playersSize = width * 0.044
+        let metaSize = width * 0.04
+        let wordmarkSize = width * 0.05
+
+        VStack(alignment: .leading, spacing: width * 0.022) {
+            WordmarkView(
+                font: .system(size: wordmarkSize, weight: .black, design: .rounded),
+                width: wordmarkSize * 3.6
             )
 
-            VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 6) {
-                    WordmarkView(font: .system(size: 18, weight: .bold, design: .rounded), width: 104)
-                    Text("MATCH RESULT")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(PlaycePalette.textSecondary)
-                }
+            Text(data.displayScore)
+                .font(.system(size: scoreSize, weight: .black, design: .rounded))
+                .foregroundStyle(PlaycePalette.textPrimary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.5)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(data.displayScore)
-                        .font(.system(size: 84, weight: .black, design: .rounded))
-                        .foregroundStyle(PlaycePalette.textPrimary)
-                        .minimumScaleFactor(0.64)
-                    if let setScores = data.displaySetScores {
-                        Text(setScores)
-                            .font(.title3)
-                            .foregroundStyle(PlaycePalette.textSecondary)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.72)
-                    }
-                }
-
-                Spacer()
-
-                VStack(alignment: .leading, spacing: 10) {
-                    Rectangle()
-                        .fill(PlaycePalette.accent.opacity(0.2))
-                        .frame(height: 2)
-                    HStack {
-                        Text(data.dateText)
-                            .foregroundStyle(PlaycePalette.textSecondary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                        Spacer()
-                        Text(data.durationText)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(PlaycePalette.textPrimary)
-                            .lineLimit(1)
-                    }
-                    Text(data.brandText)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(PlaycePalette.textSecondary)
-                }
+            if layout.showSetScores, let setScores = data.displaySetScores {
+                Text(setScores)
+                    .font(.system(size: parcialesSize, weight: .semibold, design: .rounded))
+                    .foregroundStyle(PlaycePalette.textPrimary.opacity(0.92))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
             }
-            .padding(44)
+
+            if let players = layout.playersText {
+                Text(players)
+                    .font(.system(size: playersSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(PlaycePalette.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+            }
+
+            if layout.showDuration || layout.showDate {
+                HStack(spacing: width * 0.03) {
+                    if layout.showDuration {
+                        Text(data.durationText)
+                    }
+                    if layout.showDuration && layout.showDate {
+                        Text("·").opacity(0.6)
+                    }
+                    if layout.showDate {
+                        Text(data.dateText)
+                    }
+                }
+                .font(.system(size: metaSize, weight: .medium, design: .rounded))
+                .foregroundStyle(PlaycePalette.textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+            }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 28))
+        .padding(.horizontal, width * 0.05)
+        .padding(.vertical, width * 0.045)
+        .frame(maxWidth: width * 0.84, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [.black.opacity(0.34), .black.opacity(0.5)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 28)
-                .stroke(PlaycePalette.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
+                .stroke(.white.opacity(0.10), lineWidth: 1)
         )
     }
 
@@ -1429,6 +1498,201 @@ struct ShareCardView: View {
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+        }
+    }
+}
+
+private extension Double {
+    /// Clamps into [lower, upper]; falls back to the midpoint if the range inverts
+    /// (e.g. the block is wider than the available space).
+    func clampedBetween(min lower: Double, max upper: Double) -> Double {
+        guard lower <= upper else { return (lower + upper) / 2 }
+        return Swift.min(Swift.max(self, lower), upper)
+    }
+}
+
+/// Strava-style editor: drag the stat block, snap to presets, choose which
+/// data is shown and (optionally) add player names before exporting the PNG.
+struct ShareCardEditorView: View {
+    let data: MatchShareCardData
+    let photoURL: URL?
+    let matchID: UUID
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var layout = ShareCardLayout()
+    @State private var shareURL: ShareURLItem?
+    @State private var errorText: String?
+    @State private var offsetAtDragStart: CGSize?
+    @State private var blockSize: CGSize = .zero
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    cardPreview
+
+                    Text("Drag the card to reposition it")
+                        .font(.footnote)
+                        .foregroundStyle(PlaycePalette.textSecondary)
+
+                    positionControls
+                    dataControls
+                    nameControls
+
+                    if let errorText {
+                        Text(errorText)
+                            .font(.footnote)
+                            .foregroundStyle(PlaycePalette.danger)
+                    }
+
+                    PlayceButton("Share", style: .solid) {
+                        renderAndShare()
+                    }
+                }
+                .padding(20)
+            }
+            .background(PlaycePalette.background.ignoresSafeArea())
+            .navigationTitle("Customize")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .foregroundStyle(PlaycePalette.textPrimary)
+                }
+            }
+            .sheet(item: $shareURL) { item in
+                ShareSheet(items: [item.url])
+            }
+        }
+    }
+
+    private var cardPreview: some View {
+        GeometryReader { geo in
+            ShareCardView(
+                data: data,
+                photoURL: photoURL,
+                layout: layout,
+                onBlockSizeChange: { blockSize = $0 }
+            )
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        let start = offsetAtDragStart ?? CGSize(width: layout.offsetX, height: layout.offsetY)
+                        if offsetAtDragStart == nil { offsetAtDragStart = start }
+                        let proposedX = start.width + Double(value.translation.width / geo.size.width)
+                        let proposedY = start.height + Double(value.translation.height / geo.size.height)
+                        (layout.offsetX, layout.offsetY) = clampedOffsets(x: proposedX, y: proposedY, in: geo.size)
+                    }
+                    .onEnded { _ in offsetAtDragStart = nil }
+            )
+        }
+        .aspectRatio(9.0 / 16.0, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+    }
+
+    /// Clamps the fine-adjustment offsets so the stat block stays fully inside
+    /// the card. Works in normalized space, so it holds at export resolution too.
+    private func clampedOffsets(x proposedX: Double, y proposedY: Double, in size: CGSize) -> (Double, Double) {
+        guard size.width > 0, size.height > 0, blockSize != .zero else {
+            return (proposedX, proposedY)
+        }
+        let marginFrac = 0.035
+        let halfWFrac = Double(blockSize.width / size.width) / 2
+        let halfHFrac = Double(blockSize.height / size.height) / 2
+
+        let resolvedX = (0.5 + proposedX).clampedBetween(
+            min: halfWFrac + marginFrac,
+            max: 1 - halfWFrac - marginFrac
+        )
+        let resolvedY = (layout.anchor.verticalFraction + proposedY).clampedBetween(
+            min: halfHFrac + marginFrac,
+            max: 1 - halfHFrac - marginFrac
+        )
+        return (resolvedX - 0.5, resolvedY - layout.anchor.verticalFraction)
+    }
+
+    private var positionControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Position")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PlaycePalette.textSecondary)
+            HStack(spacing: 10) {
+                presetButton("Top", anchor: .top)
+                presetButton("Center", anchor: .center)
+                presetButton("Bottom", anchor: .bottom)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func presetButton(_ title: LocalizedStringKey, anchor: ShareCardAnchor) -> some View {
+        let isSelected = layout.anchor == anchor && layout.offsetX == 0 && layout.offsetY == 0
+        return Button {
+            withAnimation(.easeOut(duration: 0.18)) {
+                layout.apply(anchor: anchor)
+            }
+        } label: {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+        }
+        .foregroundStyle(isSelected ? Color.black : PlaycePalette.textPrimary)
+        .background(
+            (isSelected ? PlaycePalette.accent : PlaycePalette.surfaceElevated),
+            in: RoundedRectangle(cornerRadius: 12)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(PlaycePalette.border, lineWidth: isSelected ? 0 : 1)
+        )
+    }
+
+    private var dataControls: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Data shown")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PlaycePalette.textSecondary)
+            Toggle("Set scores", isOn: $layout.showSetScores)
+            Toggle("Duration", isOn: $layout.showDuration)
+            Toggle("Date", isOn: $layout.showDate)
+        }
+        .tint(PlaycePalette.accent)
+        .foregroundStyle(PlaycePalette.textPrimary)
+    }
+
+    private var nameControls: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Players (optional)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(PlaycePalette.textSecondary)
+            TextField("Player 1", text: $layout.playerAName)
+                .textFieldStyle(.roundedBorder)
+            TextField("Player 2", text: $layout.playerBName)
+                .textFieldStyle(.roundedBorder)
+        }
+    }
+
+    private func renderAndShare() {
+        let renderer = ImageRenderer(
+            content: ShareCardView(data: data, photoURL: photoURL, layout: layout, rounded: false)
+                .frame(
+                    width: CGFloat(MatchShareCardData.exportWidth),
+                    height: CGFloat(MatchShareCardData.exportHeight)
+                )
+        )
+        renderer.scale = 1
+        guard let image = renderer.uiImage else {
+            errorText = "Failed to render share card."
+            return
+        }
+        do {
+            shareURL = ShareURLItem(url: try SharePNGExporter.export(image: image, matchID: matchID))
+            errorText = nil
+        } catch {
+            errorText = "Failed to render share card."
         }
     }
 }
