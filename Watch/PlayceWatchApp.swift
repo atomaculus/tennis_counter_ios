@@ -341,7 +341,18 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
     func prepareAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
         let workoutType = HKObjectType.workoutType()
-        try? await healthStore.requestAuthorization(toShare: [workoutType], read: [workoutType])
+        var shareTypes: Set<HKSampleType> = [workoutType]
+        var readTypes: Set<HKObjectType> = [workoutType]
+
+        if let activeEnergy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) {
+            shareTypes.insert(activeEnergy)
+            readTypes.insert(activeEnergy)
+        }
+        if let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate) {
+            readTypes.insert(heartRate)
+        }
+
+        try? await healthStore.requestAuthorization(toShare: shareTypes, read: readTypes)
     }
 
     func startMatchWorkoutIfPossible() {
@@ -354,6 +365,10 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
         do {
             let session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             let builder = session.associatedWorkoutBuilder()
+            builder.dataSource = HKLiveWorkoutDataSource(
+                healthStore: healthStore,
+                workoutConfiguration: configuration
+            )
             self.session = session
             self.builder = builder
             session.startActivity(with: Date())
