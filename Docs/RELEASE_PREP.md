@@ -54,15 +54,30 @@ Notas:
 
 ## Proxima reanudacion
 
-Para la version `1.0.3 (6)`, el objetivo es subir un build nuevo con soporte Garmin Connect IQ en iPhone, manteniendo Apple Watch y WatchConnectivity intactos.
+Estado al 2026-07-01:
+
+- `main` local y `origin/main` quedaron sincronizados en `b3cf9fb`.
+- Commits recientes ya pusheados:
+  - `a819997 Add Garmin Connect IQ bridge`
+  - `4a36b70 Collect active energy for watch workouts`
+  - `8c4603d Centralize iOS typography scale`
+  - `b3cf9fb Bump iOS release to 1.0.3`
+- Se subio a App Store Connect el build `1.0.3 (6)` usando Xcode session renovada para `atomaculus@hotmail.com`.
+- Archive usado: `build/archives/Playce-1.0.3-6-20260701-1453.xcarchive`.
+- Export/upload path local: `build/uploads/Playce-1.0.3-6-20260701-1453`.
+- App Store Connect respondio `Upload succeeded` y el paquete quedo `processing`.
+- Warning no bloqueante durante upload: falta el dSYM de `ConnectIQ.framework` para UUID `FA1FD640-51C3-3CDD-9B9B-7DB757A6A082`.
+- La version `1.0.2` ya estaba cerrada en App Store Connect; por eso se subio `1.0.3 (6)`.
+- HealthKit en watchOS actualmente inicia workout con `HKWorkoutSession`/`HKLiveWorkoutBuilder`, solicita permisos para workout, energia activa y lectura de heart rate, y usa `HKLiveWorkoutDataSource` para que watchOS estime calorias. No se agrego conteo de pasos dedicado.
+- La tipografia iOS quedo centralizada en `PlayceType` dentro de `iOS/PlayceIOSApp.swift`, alineada con el criterio de Android. La share card mantiene su escala responsive propia.
 
 Cuando se prepare una nueva revision, retomar por estos pasos:
 
-1. Correr el preflight local de este documento y confirmar que `main` esta limpio.
-2. Crear App IDs/capabilities y el producto StoreKit `premium_unlock`.
-3. Quitar u ocultar los controles DEBUG visibles de premium.
-4. Generar build firmado para dispositivo fisico y validar iPhone + Apple Watch reales.
-5. Preparar metadata/screenshots/privacy y subir a TestFlight.
+1. Confirmar en App Store Connect que el build `1.0.3 (6)` termino de procesar.
+2. Asociar el build a la version nueva y revisar metadata/screenshots/privacy si App Store Connect lo requiere.
+3. Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`, especialmente Garmin Connect IQ, HealthKit/workout activo, energia activa y share card.
+4. Si se decide corregir el warning de simbolos, conseguir/agregar el dSYM correspondiente de `ConnectIQ.framework`.
+5. Correr el preflight local de este documento antes de cualquier nuevo archive y confirmar que `main` esta limpio.
 
 ## App Store Connect - valores sugeridos
 
