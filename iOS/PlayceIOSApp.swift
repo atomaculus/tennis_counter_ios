@@ -1353,13 +1353,16 @@ struct ShareCardView: View {
             ZStack {
                 background
 
-                // Light, symmetric vignette so the photo reads as intentional
-                // without committing the design to a fixed dark region.
+                // Top scrim so the fixed logo stays legible over any photo.
                 LinearGradient(
-                    colors: [.black.opacity(0.20), .clear, .black.opacity(0.28)],
+                    colors: [.black.opacity(0.42), .black.opacity(0.0)],
                     startPoint: .top,
-                    endPoint: .bottom
+                    endPoint: UnitPoint(x: 0.5, y: 0.30)
                 )
+
+                fixedLogo(width: size.width)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .padding(size.width * 0.055)
 
                 statBlock(width: size.width)
                     .background(
@@ -1406,31 +1409,43 @@ struct ShareCardView: View {
         return CGPoint(x: x, y: y)
     }
 
+    /// Fixed brand lockup, always pinned to the top-left corner.
+    @ViewBuilder
+    private func fixedLogo(width: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: width * 0.008) {
+            WordmarkView(
+                font: .system(size: width * 0.06, weight: .black, design: .rounded),
+                width: width * 0.06 * 5.6
+            )
+            Text("MATCH RESULT")
+                .font(.system(size: width * 0.03, weight: .semibold, design: .rounded))
+                .tracking(width * 0.006)
+                .foregroundStyle(.white.opacity(0.85))
+        }
+        .shadow(color: .black.opacity(0.5), radius: width * 0.008, x: 0, y: width * 0.003)
+    }
+
+    /// Movable match info. No background box — legibility comes from a text
+    /// shadow, so it reads on any photo while keeping the design clean.
     @ViewBuilder
     private func statBlock(width: CGFloat) -> some View {
-        let scoreSize = width * 0.135
-        let parcialesSize = width * 0.05
-        let playersSize = width * 0.044
-        let metaSize = width * 0.04
-        let wordmarkSize = width * 0.05
+        let scoreSize = width * 0.22
+        let parcialesSize = width * 0.062
+        let playersSize = width * 0.05
+        let metaSize = width * 0.05
 
-        VStack(alignment: .leading, spacing: width * 0.022) {
-            WordmarkView(
-                font: .system(size: wordmarkSize, weight: .black, design: .rounded),
-                width: wordmarkSize * 3.6
-            )
-
+        VStack(alignment: .leading, spacing: width * 0.016) {
             Text(data.displayScore)
                 .font(.system(size: scoreSize, weight: .black, design: .rounded))
-                .foregroundStyle(PlaycePalette.textPrimary)
+                .foregroundStyle(.white)
                 .lineLimit(2)
                 .minimumScaleFactor(0.5)
                 .fixedSize(horizontal: false, vertical: true)
 
             if layout.showSetScores, let setScores = data.displaySetScores {
                 Text(setScores)
-                    .font(.system(size: parcialesSize, weight: .semibold, design: .rounded))
-                    .foregroundStyle(PlaycePalette.textPrimary.opacity(0.92))
+                    .font(.system(size: parcialesSize, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
@@ -1438,7 +1453,7 @@ struct ShareCardView: View {
             if let players = layout.playersText {
                 Text(players)
                     .font(.system(size: playersSize, weight: .medium, design: .rounded))
-                    .foregroundStyle(PlaycePalette.textSecondary)
+                    .foregroundStyle(.white.opacity(0.95))
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
@@ -1456,28 +1471,12 @@ struct ShareCardView: View {
                     }
                 }
                 .font(.system(size: metaSize, weight: .medium, design: .rounded))
-                .foregroundStyle(PlaycePalette.textSecondary)
+                .foregroundStyle(.white.opacity(0.95))
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
             }
         }
-        .padding(.horizontal, width * 0.05)
-        .padding(.vertical, width * 0.045)
-        .frame(maxWidth: width * 0.84, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [.black.opacity(0.34), .black.opacity(0.5)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: width * 0.05, style: .continuous)
-                .stroke(.white.opacity(0.10), lineWidth: 1)
-        )
+        .shadow(color: .black.opacity(0.55), radius: width * 0.012, x: 0, y: width * 0.004)
     }
 
     @ViewBuilder
