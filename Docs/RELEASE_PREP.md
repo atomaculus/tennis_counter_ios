@@ -4,8 +4,8 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 ## Estado actual
 
-- Version local: `MARKETING_VERSION = 1.0.1`.
-- Build local: `CURRENT_PROJECT_VERSION = 4`.
+- Version local: `MARKETING_VERSION = 1.0.2`.
+- Build local: `CURRENT_PROJECT_VERSION = 5`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
@@ -14,6 +14,8 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - In-app purchase usado por StoreKit: `premium_unlock`.
 - Privacy policy URL: `https://tenniscounter.vercel.app/privacy`.
 - Privacy manifest: `Resources/PrivacyInfo.xcprivacy`.
+- Garmin Connect IQ iPhone URL scheme: `playce-ciq`.
+- Garmin Connect IQ app id: `c4f18a72-b93e-4d6f-a1c8-e5b2079d3a44`.
 - HealthKit entitlement Watch: `Watch/PlayceWatchApp.entitlements`.
 
 ## Antes de App Store Connect
@@ -34,9 +36,25 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 - [x] Preparar screenshots iPhone y Apple Watch en `/Users/nicolasolivares/AGM/screenshots_app_store`.
 - [ ] Validar iPhone + Apple Watch reales con el checklist de `Docs/MVP_QA_CHECKLIST.md`. iPhone fisico validado via TestFlight; falta Apple Watch fisico.
 
+## Rechazo Guideline 2.1(b) - IAP no enviado a review (junio 2026)
+
+App Review no puede aprobar la version porque el in-app purchase referenciado por la app no esta incluido en la submission. El producto es un no consumible (`premium_unlock`); el texto de Apple sobre "subscriptions" es plantilla generica. Pasos para resolver, todos en App Store Connect:
+
+1. Ir a `Apps > PLAYCE Tennis & Padel > Monetizacion > Compras dentro de la app` y abrir `premium_unlock`.
+2. Verificar el estado del producto. Si dice `Ready to Submit` o `Developer Action Needed`, falta metadata o el screenshot de review.
+3. Subir el **screenshot de App Review** del IAP (obligatorio): captura del paywall de la app mostrando el boton Unlock Premium con el precio. Sirve una captura de iPhone del tab History/Stats bloqueado.
+4. Completar display name y descripcion en ingles y espanol si falta alguno (ver seccion In-App Purchase de este doc).
+5. En la pagina de la **version** de la app (la que esta en estado Rejected), buscar la seccion `In-App Purchases and Subscriptions` y **agregar `premium_unlock` a la submission**. Este paso es el que App Review reclama: el IAP debe viajar junto con la version.
+6. Subir un binario nuevo (Apple lo pide explicitamente en el rechazo): bump de `CURRENT_PROJECT_VERSION`, archive, upload, seleccionar el build nuevo en la version.
+7. Reenviar la version a App Review. El IAP debe aparecer en la misma submission con estado `Waiting for Review`.
+
+Notas:
+- Si `premium_unlock` figura `Approved` (quedo aprobado con 1.0.0), el paso 5 no aplica y el rechazo seria por otro producto IAP creado a medias; revisar que no haya productos extra en estado borrador y borrarlos o completarlos.
+- El screenshot de review del IAP no se muestra en el App Store, es solo para el reviewer.
+
 ## Proxima reanudacion
 
-Para la version `1.0.1 (4)`, el objetivo es subir un build nuevo sin cambios funcionales para habilitar una nueva revision de App Store con screenshots actualizados.
+Para la version `1.0.2 (5)`, el objetivo es subir un build nuevo con soporte Garmin Connect IQ en iPhone, manteniendo Apple Watch y WatchConnectivity intactos.
 
 Cuando se prepare una nueva revision, retomar por estos pasos:
 
@@ -82,6 +100,7 @@ Cuando se prepare una nueva revision, retomar por estos pasos:
   - `NSHealthShareUsageDescription`
   - `NSHealthUpdateUsageDescription`
 - El target Watch declara `com.apple.developer.healthkit`.
+- Garmin Connect IQ requiere `NSBluetoothAlwaysUsageDescription`, `LSApplicationQueriesSchemes = gcm-ciq` y el URL scheme `playce-ciq` en el target iPhone.
 - La app usa `UserDefaults` para premium/debug state y pendientes de sync, por eso `PrivacyInfo.xcprivacy` declara `NSPrivacyAccessedAPICategoryUserDefaults` con razon `CA92.1`.
 - El flujo actual usa almacenamiento local y WatchConnectivity; no hay tracking ni dominios de tracking declarados.
 - La respuesta de App Privacy en App Store Connect debe revisarse con producto/legales antes de publicar, especialmente por HealthKit/workouts y fotos adjuntas locales.

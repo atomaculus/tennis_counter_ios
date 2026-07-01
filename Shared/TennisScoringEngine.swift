@@ -221,6 +221,7 @@ final class ScoreboardController: ObservableObject {
         baseline = state
         baseline.playerA.points = 0
         baseline.playerB.points = 0
+        baseline.isTiebreak = false
         state.playerA.points = 0
         state.playerB.points = 0
         state.isTiebreak = false

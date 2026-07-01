@@ -9,16 +9,43 @@ options:
 
 settings:
   base:
-    MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: "4"
+    MARKETING_VERSION: "1.0.2"
+    CURRENT_PROJECT_VERSION: "5"
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: 63U9A75L6R
     CODE_SIGN_STYLE: Automatic
+
+packages:
+  ConnectIQ:
+    url: https://github.com/garmin/connectiq-companion-app-sdk-ios
+    exactVersion: 1.8.0
 
 targets:
   PlayceIOS:
     type: application
     platform: iOS
+    info:
+      path: iOS/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: $(DEVELOPMENT_LANGUAGE)
+        CFBundleDisplayName: PLAYCE
+        CFBundleExecutable: $(EXECUTABLE_NAME)
+        CFBundleIdentifier: $(PRODUCT_BUNDLE_IDENTIFIER)
+        CFBundleInfoDictionaryVersion: "6.0"
+        CFBundleName: $(PRODUCT_NAME)
+        CFBundlePackageType: APPL
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen: {}
+        CFBundleURLTypes:
+          - CFBundleURLName: com.agm.playce.connectiq
+            CFBundleURLSchemes:
+              - playce-ciq
+        LSApplicationQueriesSchemes:
+          - gcm-ciq
+        NSBluetoothAlwaysUsageDescription: PLAYCE uses Bluetooth through Garmin Connect IQ to exchange match scores with your Garmin watch.
     sources:
       - path: iOS
       - path: Shared
@@ -26,13 +53,11 @@ targets:
     dependencies:
       - target: PlayceWatchApp
         embed: true
+      - package: ConnectIQ
+        product: ConnectIQ
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.agm.playce
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: PLAYCE
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         TARGETED_DEVICE_FAMILY: "1"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 

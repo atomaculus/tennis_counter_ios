@@ -228,18 +228,18 @@ struct WatchRootView: View {
     private func userFacingStatus(_ text: String) -> String {
         let status = text.lowercased()
         if status.contains("broadcast") || status.contains("watching live") {
-            return "TRANSMITIENDO"
+            return String(localized: "BROADCASTING")
         }
         if status.contains("config") {
-            return "CONFIGURACION LISTA"
+            return String(localized: "CONFIG READY")
         }
         if status.contains("saved") || status.contains("stored") || status.contains("inserted") || status.contains("duplicate") || status.contains("match sync") {
-            return "PARTIDO GUARDADO"
+            return String(localized: "MATCH SAVED")
         }
         if status.contains("queued") || status.contains("sending") || status.contains("retry") {
-            return "SINCRONIZANDO"
+            return String(localized: "SYNCING")
         }
-        return "RELOJ LISTO"
+        return String(localized: "WATCH READY")
     }
 
     private func compactStat(_ title: String, _ value: String) -> some View {

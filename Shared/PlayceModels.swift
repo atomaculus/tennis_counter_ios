@@ -325,6 +325,40 @@ struct LiveMatchPayload: Codable, Hashable {
         self.lastScoredPlayer = lastScoredPlayer
         self.timestamp = timestamp
     }
+
+    init(
+        playerAPoints: Int,
+        playerAGames: Int,
+        playerASets: Int,
+        playerBPoints: Int,
+        playerBGames: Int,
+        playerBSets: Int,
+        completedSets: String,
+        pointLabelA: String,
+        pointLabelB: String,
+        elapsedSeconds: Int,
+        isTimerRunning: Bool,
+        hasTimerStarted: Bool,
+        isMatchActive: Bool,
+        lastScoredPlayer: String,
+        timestamp: Date
+    ) {
+        self.playerAPoints = playerAPoints
+        self.playerAGames = playerAGames
+        self.playerASets = playerASets
+        self.playerBPoints = playerBPoints
+        self.playerBGames = playerBGames
+        self.playerBSets = playerBSets
+        self.completedSets = completedSets
+        self.pointLabelA = pointLabelA
+        self.pointLabelB = pointLabelB
+        self.elapsedSeconds = elapsedSeconds
+        self.isTimerRunning = isTimerRunning
+        self.hasTimerStarted = hasTimerStarted
+        self.isMatchActive = isMatchActive
+        self.lastScoredPlayer = lastScoredPlayer
+        self.timestamp = timestamp
+    }
 }
 
 struct MatchConfigPayload: Codable, Hashable {
@@ -351,6 +385,12 @@ enum WatchConfigSendResult {
     case sent
     case queued
     case unavailable
+
+    func merged(with other: WatchConfigSendResult) -> WatchConfigSendResult {
+        if self == .sent || other == .sent { return .sent }
+        if self == .queued || other == .queued { return .queued }
+        return .unavailable
+    }
 }
 
 enum PlayceFormatting {

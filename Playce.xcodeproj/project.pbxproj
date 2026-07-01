@@ -10,6 +10,7 @@
 		305411FAFB176B9D7DC0954B /* MatchHistoryStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4A3DC125B37D4B3738FBC14 /* MatchHistoryStoreTests.swift */; };
 		318388756441DFDB466FD702 /* MatchShareCardDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85455797F1BF57D937F38414 /* MatchShareCardDataTests.swift */; };
 		325F0F910DA95ED142971B57 /* PlayceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4370463793713438C4457E21 /* PlayceModels.swift */; };
+		349010446BA493FFDB15AA97 /* ConnectIQ in Frameworks */ = {isa = PBXBuildFile; productRef = 0B87AB567DAEA0B081483CAF /* ConnectIQ */; };
 		38CA1E6486D643CAC6134853 /* PlayceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4370463793713438C4457E21 /* PlayceModels.swift */; };
 		4542CA723DBD95FFA0A73891 /* TennisScoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71673CB2F8A1781BD40D5270 /* TennisScoringEngine.swift */; };
 		68A8DA7B5EAA12DF090429F6 /* PlayceIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAB216FB2DFAFAF5BBF92A7E /* PlayceIOSApp.swift */; };
@@ -19,6 +20,7 @@
 		86E0C9CD7E96267D0B8F20AC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9857EF6E132765401E5872CB /* Assets.xcassets */; };
 		88AE71B9118AFEDA11D45E42 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5D50CFED493D8492DD6D5A4A /* PrivacyInfo.xcprivacy */; };
 		897911631CF83DE42B1867AF /* PlayceStores.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCF927DECD8B0C2AFF30FB42 /* PlayceStores.swift */; };
+		8BFDBA41EE7C8D988638E4EF /* GarminConnectivityCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D4E501541F0968633A2073A /* GarminConnectivityCoordinator.swift */; };
 		C0B9F8A3551CF288D16171C5 /* PremiumStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 381FB0B4CA5AF555DABF1787 /* PremiumStoreTests.swift */; };
 		C9F1EC2EDEE56E91C626B98B /* MatchStatsExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B0CA5989D6D1D5DCD0ACF97 /* MatchStatsExporterTests.swift */; };
 		CB95C948D119CDE8EC513168 /* ScoringEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF04F3135650BEA14EE21AB2 /* ScoringEngineTests.swift */; };
@@ -64,6 +66,8 @@
 		5D50CFED493D8492DD6D5A4A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		71673CB2F8A1781BD40D5270 /* TennisScoringEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TennisScoringEngine.swift; sourceTree = "<group>"; };
 		85455797F1BF57D937F38414 /* MatchShareCardDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchShareCardDataTests.swift; sourceTree = "<group>"; };
+		8D4E501541F0968633A2073A /* GarminConnectivityCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminConnectivityCoordinator.swift; sourceTree = "<group>"; };
+		9705EB7222156242E89719D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		9857EF6E132765401E5872CB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		98DD39F10B01ADF1E93687C3 /* PlayceWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlayceWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A4A3DC125B37D4B3738FBC14 /* MatchHistoryStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchHistoryStoreTests.swift; sourceTree = "<group>"; };
@@ -76,6 +80,17 @@
 		DCF927DECD8B0C2AFF30FB42 /* PlayceStores.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayceStores.swift; sourceTree = "<group>"; };
 		EAB216FB2DFAFAF5BBF92A7E /* PlayceIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayceIOSApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		4495470832179CF1F06AB062 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				349010446BA493FFDB15AA97 /* ConnectIQ in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		611166CC4C2444C2B01790C0 /* Products */ = {
@@ -115,6 +130,8 @@
 		AFD7E049033F144A6E22131B /* iOS */ = {
 			isa = PBXGroup;
 			children = (
+				8D4E501541F0968633A2073A /* GarminConnectivityCoordinator.swift */,
+				9705EB7222156242E89719D9 /* Info.plist */,
 				EAB216FB2DFAFAF5BBF92A7E /* PlayceIOSApp.swift */,
 			);
 			path = iOS;
@@ -175,6 +192,7 @@
 			buildPhases = (
 				283E7411A9F33A4A41F36665 /* Sources */,
 				97A42E506A919816DDC85A99 /* Resources */,
+				4495470832179CF1F06AB062 /* Frameworks */,
 				2062C651625459C7DEAEF191 /* Embed Watch Content */,
 			);
 			buildRules = (
@@ -184,6 +202,7 @@
 			);
 			name = PlayceIOS;
 			packageProductDependencies = (
+				0B87AB567DAEA0B081483CAF /* ConnectIQ */,
 			);
 			productName = PlayceIOS;
 			productReference = D20DD6E850601469EF466745 /* PlayceIOS.app */;
@@ -241,6 +260,9 @@
 			);
 			mainGroup = 97824703E5F885E6955156A3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D528B68C37040C2CAE533EEA /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */,
+			);
 			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
@@ -306,6 +328,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8BFDBA41EE7C8D988638E4EF /* GarminConnectivityCoordinator.swift in Sources */,
 				68A8DA7B5EAA12DF090429F6 /* PlayceIOSApp.swift in Sources */,
 				325F0F910DA95ED142971B57 /* PlayceModels.swift in Sources */,
 				EABA84EACF61D45BCBD0EEB5 /* PlayceStores.swift in Sources */,
@@ -373,10 +396,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = PLAYCE;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -439,7 +459,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 63U9A75L6R;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -459,7 +479,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -493,10 +513,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = PLAYCE;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = iOS/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -542,7 +559,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 63U9A75L6R;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -556,7 +573,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.1;
+				MARKETING_VERSION = 1.0.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -607,6 +624,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D528B68C37040C2CAE533EEA /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/garmin/connectiq-companion-app-sdk-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 1.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0B87AB567DAEA0B081483CAF /* ConnectIQ */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D528B68C37040C2CAE533EEA /* XCRemoteSwiftPackageReference "connectiq-companion-app-sdk-ios" */;
+			productName = ConnectIQ;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 17B9D6F8A81657BFF85F4085 /* Project object */;
 }

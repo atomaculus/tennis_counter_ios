@@ -7,6 +7,7 @@ struct PlayceIOSApp: App {
     @StateObject private var historyStore = MatchHistoryStore()
     @StateObject private var premiumStore = PremiumStore()
     @StateObject private var connectivity = ConnectivityCoordinator.shared
+    @StateObject private var garminConnectivity = GarminConnectivityCoordinator.shared
 
     var body: some Scene {
         WindowGroup {
@@ -14,10 +15,15 @@ struct PlayceIOSApp: App {
                 .environmentObject(historyStore)
                 .environmentObject(premiumStore)
                 .environmentObject(connectivity)
+                .environmentObject(garminConnectivity)
                 .task {
                     await premiumStore.start()
                     connectivity.configure(historyStore: historyStore, premiumStore: premiumStore)
                     connectivity.activate()
+                    garminConnectivity.configure(connectivity: connectivity)
+                }
+                .onOpenURL { url in
+                    _ = garminConnectivity.handleOpenURL(url)
                 }
         }
     }
@@ -69,6 +75,7 @@ enum PlaycePalette {
 struct CounterTabView: View {
     @ObservedObject var controller: ScoreboardController
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
+    @EnvironmentObject private var garminConnectivity: GarminConnectivityCoordinator
     @EnvironmentObject private var historyStore: MatchHistoryStore
     @EnvironmentObject private var premiumStore: PremiumStore
 
@@ -95,6 +102,7 @@ struct CounterTabView: View {
                             status: connectivity.syncStatus,
                             hasPendingMatch: connectivity.pendingFinishedMatch != nil
                         )
+                        GarminConnectionCard()
                         MatchSetupCard(
                             onApplyConfig: { nameA, nameB, preset in
                                 controller.setPlayerNames(nameA, nameB)
@@ -108,6 +116,11 @@ struct CounterTabView: View {
                                     playerBName: controller.playerBName,
                                     format: preset.format
                                 )
+                                .merged(with: garminConnectivity.sendMatchConfig(
+                                    playerAName: controller.playerAName,
+                                    playerBName: controller.playerBName,
+                                    format: preset.format
+                                ))
                             }
                         )
                         TimerCard(
@@ -140,6 +153,52 @@ struct CounterTabView: View {
             }
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+    }
+}
+
+struct GarminConnectionCard: View {
+    @EnvironmentObject private var garminConnectivity: GarminConnectivityCoordinator
+
+    var body: some View {
+        PlayceCard {
+            HStack(spacing: 12) {
+                Image(systemName: garminConnectivity.connectedDeviceCount > 0 ? "antenna.radiowaves.left.and.right" : "dot.radiowaves.left.and.right")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(garminConnectivity.connectedDeviceCount > 0 ? PlaycePalette.accent : PlaycePalette.textSecondary)
+                    .frame(width: 28, height: 28)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("GARMIN")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(PlaycePalette.textSecondary)
+                    Text(LocalizedStringKey(garminConnectivity.statusMessage))
+                        .font(.body.weight(.semibold))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                        .foregroundStyle(PlaycePalette.textPrimary)
+                    if !garminConnectivity.devices.isEmpty {
+                        Text(garminConnectivity.devices.map { "\($0.name) \($0.status)" }.joined(separator: " · "))
+                            .font(.footnote)
+                            .lineLimit(2)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                Button {
+                    garminConnectivity.requestDeviceSelection()
+                } label: {
+                    Image(systemName: "link")
+                        .font(.body.weight(.semibold))
+                        .frame(width: 36, height: 36)
+                        .background(PlaycePalette.surfaceElevated, in: RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(PlaycePalette.textPrimary)
+                .accessibilityLabel("Select Garmin device")
+            }
+        }
     }
 }
 

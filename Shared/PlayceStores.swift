@@ -158,7 +158,7 @@ final class PremiumStore: ObservableObject {
               transaction.productID == Self.premiumProductID else {
             return
         }
-        setPremiumUnlocked(true)
+        setPremiumUnlocked(transaction.revocationDate == nil)
         await transaction.finish()
     }
 
@@ -254,7 +254,7 @@ final class MatchHistoryStore: ObservableObject {
             try? FileManager.default.removeItem(at: existingURL)
         }
         try data.write(to: destinationURL, options: .atomic)
-        matches[index].photoBookmark = Data(destinationURL.path.utf8)
+        matches[index].photoBookmark = Data(destinationURL.lastPathComponent.utf8)
         save()
     }
 
@@ -263,7 +263,12 @@ final class MatchHistoryStore: ObservableObject {
               let path = String(data: bookmark, encoding: .utf8) else {
             return nil
         }
-        return URL(fileURLWithPath: path)
+        // The app container path changes on every app update, so resolve by
+        // file name inside the current photos folder. Legacy bookmarks stored
+        // the full absolute path; taking the last component covers both.
+        let fileName = URL(fileURLWithPath: path).lastPathComponent
+        guard !fileName.isEmpty else { return nil }
+        return photosFolderURL().appendingPathComponent(fileName)
     }
 
     private func storageURL() -> URL {
@@ -472,6 +477,29 @@ final class ConnectivityCoordinator: NSObject, ObservableObject {
         receivedMatchConfig = nil
     }
 
+    func receiveExternalLiveMatch(_ payload: LiveMatchPayload, source: String) {
+        if payload.isMatchActive {
+            liveMatch = payload
+            syncStatus = "Watching live from \(source)"
+        } else {
+            liveMatch = nil
+            syncStatus = "Idle"
+        }
+    }
+
+    func receiveExternalFinishedMatch(_ record: FinishedMatchRecord, source: String) -> MatchSyncAckPayload {
+        // Matches are always stored; viewing history is what Premium gates.
+        let wasDuplicate = historyStore?.contains(idempotencyKey: record.idempotencyKey) ?? false
+        historyStore?.upsert(record)
+        let status = wasDuplicate ? "duplicate" : "inserted"
+        syncStatus = wasDuplicate ? "Duplicate \(source) match ignored" : "\(source) match stored"
+        return MatchSyncAckPayload(idempotencyKey: record.idempotencyKey, status: status)
+    }
+
+    func receiveExternalSyncStatus(_ status: String) {
+        syncStatus = status
+    }
+
     func queueFinishedMatch(_ record: FinishedMatchRecord) {
         guard let session else { return }
         pendingFinishedMatch = PendingFinishedMatch(record: record, lastStatus: session.isReachable ? "Sending" : "Queued offline")
@@ -514,11 +542,6 @@ final class ConnectivityCoordinator: NSObject, ObservableObject {
         guard let record = try? decoder.decode(FinishedMatchRecord.self, from: data) else {
             syncStatus = "Received invalid match"
             return nil
-        }
-
-        guard premiumStore?.isPremiumUnlocked ?? true else {
-            syncStatus = "Premium locked: match not stored"
-            return MatchSyncAckPayload(idempotencyKey: record.idempotencyKey, status: "premium_locked")
         }
 
         let wasDuplicate = historyStore?.contains(idempotencyKey: record.idempotencyKey) ?? false

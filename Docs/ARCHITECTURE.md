@@ -6,7 +6,7 @@ PLAYCE iOS mirrors the Android repo architecture without mixing phone and watch 
 
 ```text
 Shared/   Rules, models, persistence contracts, sync payloads
-iOS/      iPhone UI, local history owner, premium UI, export/share
+iOS/      iPhone UI, local history owner, premium UI, export/share, Garmin companion bridge
 Watch/    Apple Watch scorer, HealthKit workout lifecycle, watch UI
 ```
 
@@ -48,7 +48,9 @@ Responsibilities:
 - Configure match names and format.
 - Run local phone counter.
 - Send config to Watch.
+- Send config to Garmin through Connect IQ.
 - Show read-only live score when Watch is source of truth.
+- Show read-only live score when Garmin is source of truth.
 - Own local match history.
 - Show detail, stats, CSV export and share card.
 - Present premium gate and StoreKit actions.
@@ -71,6 +73,23 @@ Responsibilities:
 - Manage HealthKit workout session lifecycle.
 
 The Watch can count a match independently, but saved match history remains phone-owned.
+
+## Garmin Layer
+
+Key file:
+
+- `iOS/GarminConnectivityCoordinator.swift`
+
+Responsibilities:
+
+- Initialize the Garmin Connect IQ Companion App SDK on iPhone.
+- Launch Garmin Connect Mobile for device selection via URL scheme `playce-ciq`.
+- Register selected `IQDevice` / `IQApp` pairs for device and app messages.
+- Send match config envelopes to the Garmin watch.
+- Receive live score and finished-match envelopes from the Garmin watch.
+- Store finished Garmin matches through the same phone-owned history path and send ACK envelopes.
+
+The Garmin watch-side app lives outside this repo in the sibling Connect IQ project. Its app id must match `c4f18a72-b93e-4d6f-a1c8-e5b2079d3a44`.
 
 ## Sync Flow
 
@@ -103,6 +122,17 @@ Watch FinishedMatchRecord
   -> Watch clears pending item
 ```
 
+Garmin uses the same semantic payloads through Connect IQ envelopes:
+
+```text
+Garmin watch
+  -> /playce/live or /match_finished envelope
+  -> GarminConnectivityCoordinator
+  -> ConnectivityCoordinator / MatchHistoryStore
+  -> /match_finished_ack envelope
+  -> Garmin watch clears pending item
+```
+
 Idempotency is handled with `FinishedMatchRecord.idempotencyKey`.
 
 ## Adding New Match Formats
@@ -119,4 +149,4 @@ Idempotency is handled with `FinishedMatchRecord.idempotencyKey`.
 - Spectator second-watch mode is not ported because watchOS pairing topology differs from Wear OS Data Layer.
 - Real StoreKit requires App Store Connect product setup.
 - HealthKit entitlement and privacy strings are present, but real-device signing must still be validated.
-- Garmin / Connect IQ is tracked as a future phase outside the iOS/watchOS MVP.
+- Garmin Connect IQ compile-time integration is present, but end-to-end validation requires Garmin Connect Mobile, a physical Garmin device and the sibling watch app installed.

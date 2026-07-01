@@ -65,6 +65,25 @@ final class MatchHistoryStoreTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: photoURL.path))
     }
 
+    func testPhotoURLRebasesLegacyAbsolutePathIntoCurrentPhotosFolder() throws {
+        let storageURL = temporaryStorageURL()
+        let store = MatchHistoryStore(storageURL: storageURL)
+        var record = makeRecord(idempotencyKey: "legacy-photo-key", score: "6-1")
+        let staleContainerPath = "/var/mobile/Containers/Data/Application/OLD-UUID/Library/Application Support/Playce/photos/\(record.id.uuidString).jpg"
+        record.photoBookmark = Data(staleContainerPath.utf8)
+
+        store.upsert(record)
+
+        guard let resolved = store.photoURL(for: record) else {
+            return XCTFail("Expected rebased photo URL")
+        }
+        XCTAssertEqual(resolved.lastPathComponent, "\(record.id.uuidString).jpg")
+        XCTAssertEqual(
+            resolved.deletingLastPathComponent(),
+            storageURL.deletingLastPathComponent().appendingPathComponent("photos", isDirectory: true)
+        )
+    }
+
     private func temporaryStorageURL() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

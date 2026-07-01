@@ -21,6 +21,7 @@ Implemented:
 - iPhone counter with setup, timer, scoring, undo, reset, finish and save.
 - Apple Watch scorer with timer, scoring, undo, reset, finish, HealthKit workout lifecycle and sync status.
 - WatchConnectivity live score, config sync, finished-match transfer, retry state and ACK handling.
+- Garmin Connect IQ companion bridge for device selection, match config sync, live score receive, finished-match receive and ACK.
 - Local match history with versioned JSON archive and legacy migration.
 - Match detail, delete, attached photo, share card PNG.
 - Stats and CSV export.
@@ -32,8 +33,8 @@ Known MVP follow-ups:
 
 - Android Wear opens undo through long press on `+A`/`+B`; this MVP still shows explicit `Undo A`/`Undo B` controls.
 - A second spectator watch is not directly equivalent on standard watchOS pairing topology.
-- Real StoreKit, HealthKit and WatchConnectivity must be validated with signed builds on real devices before TestFlight.
-- Garmin / Connect IQ remains second priority and is tracked in `/Users/nicolasolivares/AGM/PLAN_REPLICA_IOS_PLAYCE.md`.
+- Real StoreKit, HealthKit, WatchConnectivity and Garmin Connect IQ must be validated with signed builds on real devices before release.
+- Garmin requires Garmin Connect Mobile, a selected paired device, and the sibling `playce_garmin` watch app with matching app id.
 
 ## Project Files
 
@@ -53,6 +54,23 @@ Current targets:
 - `PlayceIOS`: iPhone app, embeds the Watch app.
 - `PlayceWatchApp`: watchOS scorer app.
 - `PlayceSharedTests`: unit tests for scoring, stores, stats, share data and premium.
+
+## Garmin Connect IQ
+
+The iPhone target uses the official Garmin Connect IQ Companion App SDK for iOS through Swift Package Manager:
+
+```text
+https://github.com/garmin/connectiq-companion-app-sdk-ios @ 1.8.0
+```
+
+The bridge mirrors the Android Garmin contract:
+
+- `/playce/match-config`: iPhone -> Garmin watch.
+- `/playce/live`: Garmin watch -> iPhone.
+- `/match_finished`: Garmin watch -> iPhone.
+- `/match_finished_ack`: iPhone -> Garmin watch.
+
+The Connect IQ app id is `c4f18a72-b93e-4d6f-a1c8-e5b2079d3a44`, matching the sibling Garmin watch app. The iPhone Info.plist declares URL scheme `playce-ciq`, `gcm-ciq` lookup support and the Bluetooth usage string required by the SDK.
 
 ## Local Build
 
@@ -95,6 +113,7 @@ Use [Docs/RELEASE_PREP.md](Docs/RELEASE_PREP.md) before any App Store Connect wo
 Current release-related files:
 
 - `Watch/PlayceWatchApp.entitlements`: HealthKit entitlement for Watch.
+- `iOS/Info.plist`: iPhone URL scheme, Garmin Connect lookup and Bluetooth usage string.
 - `Resources/PrivacyInfo.xcprivacy`: required reason API declaration for `UserDefaults`.
 - `project.yml`: generated Info.plist keys including HealthKit usage descriptions.
 
