@@ -72,6 +72,23 @@ enum PlaycePalette {
     static let danger = Color(red: 1.00, green: 0.42, blue: 0.42)
 }
 
+enum PlayceType {
+    static let display = Font.system(size: 42, weight: .black, design: .rounded)
+    static let headline = Font.system(size: 28, weight: .bold, design: .rounded)
+    static let title = Font.system(size: 20, weight: .semibold, design: .default)
+    static let titleMedium = Font.system(size: 16, weight: .medium, design: .default)
+    static let body = Font.system(size: 16, weight: .regular, design: .default)
+    static let bodyStrong = Font.system(size: 16, weight: .semibold, design: .default)
+    static let bodyMedium = Font.system(size: 14, weight: .regular, design: .default)
+    static let label = Font.system(size: 14, weight: .semibold, design: .default)
+    static let labelSmall = Font.system(size: 11, weight: .medium, design: .default)
+    static let labelSmallStrong = Font.system(size: 11, weight: .bold, design: .default)
+    static let score = Font.system(size: 34, weight: .bold, design: .rounded)
+    static let scoreHero = Font.system(size: 52, weight: .black, design: .rounded)
+    static let detailScore = Font.system(size: 36, weight: .bold, design: .rounded)
+    static let wordmark = Font.system(size: 22, weight: .black, design: .rounded)
+}
+
 struct CounterTabView: View {
     @ObservedObject var controller: ScoreboardController
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
@@ -163,22 +180,22 @@ struct GarminConnectionCard: View {
         PlayceCard {
             HStack(spacing: 12) {
                 Image(systemName: garminConnectivity.connectedDeviceCount > 0 ? "antenna.radiowaves.left.and.right" : "dot.radiowaves.left.and.right")
-                    .font(.title3.weight(.semibold))
+                    .font(PlayceType.title)
                     .foregroundStyle(garminConnectivity.connectedDeviceCount > 0 ? PlaycePalette.accent : PlaycePalette.textSecondary)
                     .frame(width: 28, height: 28)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("GARMIN")
-                        .font(.caption.weight(.semibold))
+                        .font(PlayceType.label)
                         .foregroundStyle(PlaycePalette.textSecondary)
                     Text(LocalizedStringKey(garminConnectivity.statusMessage))
-                        .font(.body.weight(.semibold))
+                        .font(PlayceType.bodyStrong)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(PlaycePalette.textPrimary)
                     if !garminConnectivity.devices.isEmpty {
                         Text(garminConnectivity.devices.map { "\($0.name) \($0.status)" }.joined(separator: " · "))
-                            .font(.footnote)
+                            .font(PlayceType.bodyMedium)
                             .lineLimit(2)
                             .foregroundStyle(PlaycePalette.textSecondary)
                     }
@@ -190,7 +207,7 @@ struct GarminConnectionCard: View {
                     garminConnectivity.requestDeviceSelection()
                 } label: {
                     Image(systemName: "link")
-                        .font(.body.weight(.semibold))
+                        .font(PlayceType.bodyStrong)
                         .frame(width: 36, height: 36)
                         .background(PlaycePalette.surfaceElevated, in: RoundedRectangle(cornerRadius: 8))
                 }
@@ -210,16 +227,16 @@ struct SyncStatusCard: View {
         PlayceCard {
             HStack(spacing: 12) {
                 Image(systemName: hasPendingMatch ? "arrow.triangle.2.circlepath" : "checkmark.circle")
-                    .font(.title3.weight(.semibold))
+                    .font(PlayceType.title)
                     .foregroundStyle(hasPendingMatch ? PlaycePalette.accent : PlaycePalette.textSecondary)
                     .frame(width: 28, height: 28)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("SYNC")
-                        .font(.caption.weight(.semibold))
+                        .font(PlayceType.label)
                         .foregroundStyle(PlaycePalette.textSecondary)
                     Text(LocalizedStringKey(status))
-                        .font(.body.weight(.semibold))
+                        .font(PlayceType.bodyStrong)
                         .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .foregroundStyle(PlaycePalette.textPrimary)
@@ -266,13 +283,13 @@ struct PremiumUpsellCard: View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("PLAYCE Premium")
-                    .font(.title2.weight(.semibold))
+                    .font(PlayceType.headline)
                     .foregroundStyle(PlaycePalette.textPrimary)
                 Text(description)
                     .foregroundStyle(PlaycePalette.textSecondary)
                 if let productPriceLabel = premiumStore.productPriceLabel {
                     Text("One-time purchase: \(productPriceLabel)")
-                        .font(.subheadline.weight(.semibold))
+                        .font(PlayceType.bodyStrong)
                         .foregroundStyle(PlaycePalette.textPrimary)
                 }
                 PlayceButton(premiumStore.isPurchaseInProgress ? "Opening purchase..." : "Unlock Premium", style: .solid) {
@@ -298,12 +315,12 @@ struct PremiumStatusMessageView: View {
         VStack(alignment: .leading, spacing: 6) {
             if premiumStore.isLoading {
                 Text("Loading Premium...")
-                    .font(.footnote)
+                    .font(PlayceType.bodyMedium)
                     .foregroundStyle(PlaycePalette.textSecondary)
             }
             if !premiumStore.isPremiumUnlocked, let message = premiumStore.message {
                 Text(message)
-                    .font(.footnote)
+                    .font(PlayceType.bodyMedium)
                     .foregroundStyle(PlaycePalette.textSecondary)
             }
         }
@@ -332,10 +349,10 @@ struct MatchSetupCard: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("MATCH SETUP")
-                                .font(.caption.weight(.semibold))
+                                .font(PlayceType.label)
                                 .foregroundStyle(PlaycePalette.textSecondary)
                             Text(isExpanded ? "Names, format and watch sync" : "Player names and match format")
-                                .font(.body)
+                                .font(PlayceType.body)
                                 .foregroundStyle(PlaycePalette.textPrimary)
                         }
                         Spacer()
@@ -348,7 +365,7 @@ struct MatchSetupCard: View {
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("PLAYER NAMES")
-                            .font(.caption.weight(.semibold))
+                            .font(PlayceType.label)
                             .foregroundStyle(PlaycePalette.textSecondary)
                         HStack(spacing: 10) {
                             PlayceNameField(placeholder: "Player A", text: $playerAName)
@@ -358,7 +375,7 @@ struct MatchSetupCard: View {
                         }
 
                         Text("MATCH FORMAT")
-                            .font(.caption.weight(.semibold))
+                            .font(PlayceType.label)
                             .foregroundStyle(PlaycePalette.textSecondary)
                         HStack(spacing: 8) {
                             ForEach(FormatPreset.allCases) { preset in
@@ -447,7 +464,7 @@ struct PlayceNameField: View {
         ))
         .textInputAutocapitalization(.words)
         .autocorrectionDisabled()
-        .font(.body.weight(.semibold))
+        .font(PlayceType.bodyStrong)
         .foregroundStyle(PlaycePalette.textPrimary)
         .padding(.horizontal, 12)
         .padding(.vertical, 12)
@@ -468,12 +485,12 @@ struct FormatChip: View {
         Button(action: action) {
             VStack(spacing: 3) {
                 Text(preset.label)
-                    .font(.caption.weight(.bold))
+                    .font(PlayceType.labelSmallStrong)
                     .foregroundStyle(isSelected ? PlaycePalette.accent : PlaycePalette.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text(preset.subtitle)
-                    .font(.caption2)
+                    .font(PlayceType.labelSmall)
                     .foregroundStyle(PlaycePalette.textSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -502,16 +519,16 @@ struct TimerCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("MATCH TIMER")
-                        .font(.caption.weight(.semibold))
+                        .font(PlayceType.label)
                         .foregroundStyle(PlaycePalette.textSecondary)
                     Text(PlayceFormatting.elapsed(elapsed))
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(PlayceType.score)
                         .foregroundStyle(isRunning ? PlaycePalette.accent : PlaycePalette.textPrimary)
                 }
                 Spacer()
                 if isReadOnly {
                     Text(timerStatusTitle)
-                        .font(.subheadline.weight(.semibold))
+                        .font(PlayceType.bodyStrong)
                         .foregroundStyle(isRunning ? PlaycePalette.accent : PlaycePalette.textSecondary)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
@@ -548,7 +565,7 @@ struct ScoreboardCard: View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 14) {
                 Text("LIVE SCORE")
-                    .font(.caption.weight(.semibold))
+                    .font(PlayceType.label)
                     .foregroundStyle(PlaycePalette.textSecondary)
                 HeaderRow()
                 PlayerRow(
@@ -571,7 +588,7 @@ struct ScoreboardCard: View {
                 )
                 if !snapshot.completedSets.isEmpty {
                     Text(snapshot.completedSets.map { "\($0.a)-\($0.b)" }.joined(separator: " | "))
-                        .font(.subheadline)
+                        .font(PlayceType.bodyMedium)
                         .foregroundStyle(PlaycePalette.textSecondary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
@@ -624,10 +641,10 @@ struct StatusPill: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title.uppercased())
-                .font(.caption2.weight(.bold))
+                .font(PlayceType.labelSmallStrong)
                 .foregroundStyle(PlaycePalette.textSecondary)
             Text(value)
-                .font(.caption.weight(.semibold))
+                .font(PlayceType.label)
                 .foregroundStyle(highlighted ? PlaycePalette.accent : PlaycePalette.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
@@ -648,7 +665,7 @@ struct SmallHeader: View {
 
     var body: some View {
         Text(text)
-            .font(.caption)
+            .font(PlayceType.bodyMedium)
             .foregroundStyle(PlaycePalette.textSecondary)
             .frame(width: 54)
     }
@@ -671,7 +688,7 @@ struct PlayerRow: View {
             VStack(spacing: 12) {
                 HStack {
                     Text(name)
-                        .font(.headline)
+                        .font(PlayceType.title)
                         .foregroundStyle(PlaycePalette.textPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
@@ -704,7 +721,7 @@ struct ScoreValue: View {
 
     var body: some View {
         Text(value)
-            .font(.headline)
+            .font(PlayceType.title)
             .foregroundStyle(PlaycePalette.textPrimary)
             .frame(width: 54)
     }
@@ -722,7 +739,7 @@ struct MobileMatchFinishedContent: View {
         ScrollView {
             VStack(spacing: 16) {
                 Text("MATCH FINISHED")
-                    .font(.caption.weight(.bold))
+                    .font(PlayceType.labelSmallStrong)
                     .foregroundStyle(PlaycePalette.accent)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 7)
@@ -733,25 +750,25 @@ struct MobileMatchFinishedContent: View {
                         .foregroundStyle(PlaycePalette.accent)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     Text(summary.setsScore)
-                        .font(.system(size: 52, weight: .black, design: .rounded))
+                        .font(PlayceType.scoreHero)
                         .foregroundStyle(PlaycePalette.textPrimary)
                         .minimumScaleFactor(0.75)
                     Text(summary.playerBName)
                         .foregroundStyle(PlaycePalette.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .font(.headline.weight(.bold))
+                .font(PlayceType.title)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
                 PlayceCard {
                     VStack(spacing: 10) {
                         Text(summary.setsDetail)
-                            .font(.headline.weight(.semibold))
+                            .font(PlayceType.title)
                             .foregroundStyle(PlaycePalette.textSecondary)
                             .frame(maxWidth: .infinity)
                         Text("Duration \(PlayceFormatting.elapsed(summary.durationSeconds))")
-                            .font(.title3.weight(.bold))
+                            .font(PlayceType.title)
                             .foregroundStyle(PlaycePalette.textPrimary)
                             .frame(maxWidth: .infinity)
                     }
@@ -765,7 +782,7 @@ struct MobileMatchFinishedContent: View {
                     }
                     if saved && !isPremiumUnlocked {
                         Text("Match saved. Unlock Premium to view it in History.")
-                            .font(.footnote)
+                            .font(PlayceType.bodyMedium)
                             .foregroundStyle(PlaycePalette.textSecondary)
                             .multilineTextAlignment(.center)
                     }
@@ -812,7 +829,7 @@ struct LiveScoreView: View {
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("LIVE SCORE")
-                            .font(.caption.weight(.semibold))
+                            .font(PlayceType.label)
                             .foregroundStyle(PlaycePalette.textSecondary)
                         HeaderRow()
                         LivePlayerRow(name: "Player A", accent: PlaycePalette.accent, sets: payload.playerASets, games: payload.playerAGames, points: payload.pointLabelA)
@@ -820,7 +837,7 @@ struct LiveScoreView: View {
                         let completed = PlayceFormatting.completedSets(payload.completedSets.replacingOccurrences(of: ",", with: " "))
                         if !completed.isEmpty {
                             Text(completed)
-                                .font(.subheadline)
+                                .font(PlayceType.bodyMedium)
                                 .foregroundStyle(PlaycePalette.textSecondary)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 10)
@@ -849,7 +866,7 @@ struct LivePlayerRow: View {
                 .frame(width: 4)
             HStack {
                 Text(name)
-                    .font(.headline)
+                    .font(PlayceType.title)
                     .foregroundStyle(PlaycePalette.textPrimary)
                 Spacer()
                 ScoreValue("\(sets)")
@@ -876,7 +893,7 @@ struct LiveBadge: View {
                 .frame(width: 8, height: 8)
                 .opacity(pulse ? 0.35 : 1.0)
             Text("LIVE")
-                .font(.caption.weight(.bold))
+                .font(PlayceType.labelSmallStrong)
                 .foregroundStyle(PlaycePalette.accent)
         }
         .padding(.horizontal, 10)
@@ -951,7 +968,7 @@ struct EmptyHistoryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("No Playces yet")
-                .font(.largeTitle.weight(.bold))
+                .font(PlayceType.display)
                 .foregroundStyle(PlaycePalette.textPrimary)
             Text("Capture your next match highlight and build your history here.")
                 .foregroundStyle(PlaycePalette.textSecondary)
@@ -968,17 +985,17 @@ struct MatchRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(record.finalScoreText)
-                .font(.headline)
+                .font(PlayceType.title)
                 .foregroundStyle(PlaycePalette.textPrimary)
             Text(PlayceFormatting.timestamp(record.createdAt))
-                .font(.subheadline)
+                .font(PlayceType.bodyMedium)
                 .foregroundStyle(PlaycePalette.textSecondary)
             Text("Duration \(PlayceFormatting.elapsed(record.durationSeconds))")
-                .font(.caption)
+                .font(PlayceType.bodyMedium)
                 .foregroundStyle(PlaycePalette.textSecondary)
             if let setScores = record.setScoresText {
                 Text(PlayceFormatting.completedSets(setScores))
-                    .font(.caption)
+                    .font(PlayceType.bodyMedium)
                     .foregroundStyle(PlaycePalette.textSecondary)
             }
         }
@@ -1017,7 +1034,7 @@ struct MatchDetailView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(record.finalScoreText)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .font(PlayceType.detailScore)
                         .foregroundStyle(PlaycePalette.textPrimary)
                     Text("\(PlayceFormatting.timestamp(record.createdAt)) | Duration \(PlayceFormatting.elapsed(record.durationSeconds))")
                         .foregroundStyle(PlaycePalette.textSecondary)
@@ -1030,17 +1047,17 @@ struct MatchDetailView: View {
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Score recap")
-                            .font(.headline)
+                            .font(PlayceType.title)
                             .foregroundStyle(PlaycePalette.textPrimary)
                         Text(record.finalScoreText)
-                            .font(.title2.weight(.semibold))
+                            .font(PlayceType.headline)
                             .foregroundStyle(PlaycePalette.textPrimary)
                         if let setScores = record.setScoresText {
                             Text(PlayceFormatting.completedSets(setScores))
                                 .foregroundStyle(PlaycePalette.textSecondary)
                         }
                         Text(record.detailText)
-                            .font(.footnote)
+                            .font(PlayceType.bodyMedium)
                             .foregroundStyle(PlaycePalette.textSecondary)
                     }
                 }
@@ -1048,14 +1065,14 @@ struct MatchDetailView: View {
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Metadata")
-                            .font(.headline)
+                            .font(PlayceType.title)
                             .foregroundStyle(PlaycePalette.textPrimary)
                         Text("Source: \(record.source)")
                             .foregroundStyle(PlaycePalette.textSecondary)
                         Text("Photo: \(record.photoBookmark == nil ? "No photo" : "Attached")")
                             .foregroundStyle(PlaycePalette.textSecondary)
                         Text("ID: \(record.id.uuidString)")
-                            .font(.footnote)
+                            .font(PlayceType.bodyMedium)
                             .foregroundStyle(PlaycePalette.textSecondary)
                     }
                 }
@@ -1087,7 +1104,7 @@ struct MatchDetailView: View {
 
                 if let message = premiumStore.message {
                     Text(message)
-                        .font(.footnote)
+                        .font(PlayceType.bodyMedium)
                         .foregroundStyle(PlaycePalette.textSecondary)
                 }
 
@@ -1151,7 +1168,7 @@ struct PremiumLockedDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 WordmarkView()
                 Text("Premium required")
-                    .font(.largeTitle.weight(.bold))
+                    .font(PlayceType.display)
                     .foregroundStyle(PlaycePalette.textPrimary)
                 Text("Unlock Premium to view match details, add photos and share your Playce card.")
                     .foregroundStyle(PlaycePalette.textSecondary)
@@ -1210,7 +1227,7 @@ struct StatsTabView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Stats")
-                            .font(.largeTitle.weight(.bold))
+                            .font(PlayceType.display)
                             .foregroundStyle(PlaycePalette.textPrimary)
 
                         StatsGridView(stats: historyStore.stats)
@@ -1267,7 +1284,7 @@ struct EmptyStatsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("No stats yet")
-                .font(.largeTitle.weight(.bold))
+                .font(PlayceType.display)
                 .foregroundStyle(PlaycePalette.textPrimary)
             Text("Save a match to unlock totals, duration insights and CSV export.")
                 .foregroundStyle(PlaycePalette.textSecondary)
@@ -1313,7 +1330,7 @@ struct StatCard: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text(label)
-                    .font(.caption.weight(.semibold))
+                    .font(PlayceType.label)
                     .foregroundStyle(PlaycePalette.textSecondary)
                     .lineLimit(2)
             }
@@ -1329,7 +1346,7 @@ struct ResultDistributionView: View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("RESULT DISTRIBUTION")
-                    .font(.caption.weight(.semibold))
+                    .font(PlayceType.label)
                     .foregroundStyle(PlaycePalette.textSecondary)
                 HStack(spacing: 12) {
                     DistributionPill(title: "Player A", value: stats.playerAWins, accent: PlaycePalette.accent)
@@ -1351,11 +1368,11 @@ struct DistributionPill: View {
                 .fill(accent)
                 .frame(width: 9, height: 9)
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(PlayceType.label)
                 .foregroundStyle(PlaycePalette.textSecondary)
             Spacer()
             Text("\(value)")
-                .font(.headline.weight(.bold))
+                .font(PlayceType.title)
                 .foregroundStyle(PlaycePalette.textPrimary)
         }
         .padding(12)
@@ -1372,14 +1389,14 @@ struct ExportCSVCard: View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Export match history")
-                    .font(.headline.weight(.bold))
+                    .font(PlayceType.title)
                     .foregroundStyle(PlaycePalette.textPrimary)
                 Text("CSV with date, score, sets detail and duration in minutes.")
                     .foregroundStyle(PlaycePalette.textSecondary)
                 PlayceButton("Export CSV", style: .solid, action: onExport)
                 if let error {
                     Text(error)
-                        .font(.footnote)
+                        .font(PlayceType.bodyMedium)
                         .foregroundStyle(PlaycePalette.danger)
                 }
             }
@@ -1591,7 +1608,7 @@ struct ShareCardEditorView: View {
                     cardPreview
 
                     Text("Drag the card to reposition it")
-                        .font(.footnote)
+                        .font(PlayceType.bodyMedium)
                         .foregroundStyle(PlaycePalette.textSecondary)
 
                     positionControls
@@ -1600,7 +1617,7 @@ struct ShareCardEditorView: View {
 
                     if let errorText {
                         Text(errorText)
-                            .font(.footnote)
+                            .font(PlayceType.bodyMedium)
                             .foregroundStyle(PlaycePalette.danger)
                     }
 
@@ -1674,7 +1691,7 @@ struct ShareCardEditorView: View {
     private var positionControls: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Position")
-                .font(.subheadline.weight(.semibold))
+                .font(PlayceType.bodyStrong)
                 .foregroundStyle(PlaycePalette.textSecondary)
             HStack(spacing: 10) {
                 presetButton("Top", anchor: .top)
@@ -1693,7 +1710,7 @@ struct ShareCardEditorView: View {
             }
         } label: {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(PlayceType.bodyStrong)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
         }
@@ -1711,7 +1728,7 @@ struct ShareCardEditorView: View {
     private var dataControls: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Data shown")
-                .font(.subheadline.weight(.semibold))
+                .font(PlayceType.bodyStrong)
                 .foregroundStyle(PlaycePalette.textSecondary)
             Toggle("Set scores", isOn: $layout.showSetScores)
             Toggle("Duration", isOn: $layout.showDuration)
@@ -1724,7 +1741,7 @@ struct ShareCardEditorView: View {
     private var nameControls: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Players (optional)")
-                .font(.subheadline.weight(.semibold))
+                .font(PlayceType.bodyStrong)
                 .foregroundStyle(PlaycePalette.textSecondary)
             TextField("Player 1", text: $layout.playerAName)
                 .textFieldStyle(.roundedBorder)
@@ -1792,7 +1809,7 @@ struct PlayceButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.body.weight(.semibold))
+                .font(PlayceType.bodyStrong)
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
                 .frame(maxWidth: .infinity)
