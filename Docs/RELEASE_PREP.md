@@ -4,8 +4,8 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 ## Estado actual
 
-- Version local: `MARKETING_VERSION = 1.0.2`.
-- Build local: `CURRENT_PROJECT_VERSION = 5`.
+- Version local: `MARKETING_VERSION = 1.0.3`.
+- Build local: `CURRENT_PROJECT_VERSION = 6`.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
@@ -54,7 +54,7 @@ Notas:
 
 ## Proxima reanudacion
 
-Para la version `1.0.2 (5)`, el objetivo es subir un build nuevo con soporte Garmin Connect IQ en iPhone, manteniendo Apple Watch y WatchConnectivity intactos.
+Para la version `1.0.3 (6)`, el objetivo es subir un build nuevo con soporte Garmin Connect IQ en iPhone, manteniendo Apple Watch y WatchConnectivity intactos.
 
 Cuando se prepare una nueva revision, retomar por estos pasos:
 
