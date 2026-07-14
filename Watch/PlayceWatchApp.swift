@@ -37,6 +37,14 @@ struct WatchRootView: View {
     @State private var transientMessage: String?
     @State private var savedFinishedRecord = false
 
+    /// True once the iPhone has pushed a match config that already fixed who
+    /// serves first, so the on-watch prompt should not ask again.
+    @State private var serveFixedByPhone = false
+    /// True once the user answered the on-watch "who serves first" prompt, or
+    /// started scoring before answering (the prompt is ignorable).
+    @State private var serveQuestionAnswered = false
+    @State private var decidingTiebreakDeclined = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -54,6 +62,9 @@ struct WatchRootView: View {
             guard let config else { return }
             controller.setPlayerNames(config.playerAName, config.playerBName)
             controller.setMatchFormat(config.format)
+            controller.setInitialServer(isPlayerA: config.initialServerIsPlayerA)
+            serveFixedByPhone = true
+            serveQuestionAnswered = true
             connectivity.consumeMatchConfig()
             transientMessage = "Config applied"
             WKInterfaceDevice.current().play(.click)
@@ -62,11 +73,20 @@ struct WatchRootView: View {
             guard controller.state.isTimerRunning, finishedRecord == nil else { return }
             connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
         }
+        .onChange(of: controller.state.setDetailLine) { _, _ in
+            decidingTiebreakDeclined = false
+        }
     }
 
     private var liveCounter: some View {
         VStack(spacing: 10) {
             statusLabel(connectivity.syncStatus)
+            if showServeFirstPrompt {
+                serveFirstCard
+            }
+            if controller.canOfferDecidingTiebreak && !decidingTiebreakDeclined {
+                decidingTiebreakCard
+            }
             watchCard(accented: true) {
                 VStack(spacing: 8) {
                     Text("LIVE MATCH")
@@ -127,6 +147,9 @@ struct WatchRootView: View {
                 controller.resetMatch()
                 finishedRecord = nil
                 savedFinishedRecord = false
+                serveFixedByPhone = false
+                serveQuestionAnswered = false
+                decidingTiebreakDeclined = false
                 connectivity.clearLiveMatch()
                 workoutManager.startMatchWorkoutIfPossible()
             }
@@ -174,13 +197,77 @@ struct WatchRootView: View {
                 transientMessage = nil
                 savedFinishedRecord = false
                 controller.resetMatch()
+                serveFixedByPhone = false
+                serveQuestionAnswered = false
+                decidingTiebreakDeclined = false
                 connectivity.clearLiveMatch()
                 workoutManager.startMatchWorkoutIfPossible()
             }
         }
     }
 
+    /// The match is untouched: no points, games, sets or completed sets yet.
+    private var isVirginMatch: Bool {
+        controller.state.playerA == PlayerScore() &&
+            controller.state.playerB == PlayerScore() &&
+            controller.state.completedSets.isEmpty
+    }
+
+    private var showServeFirstPrompt: Bool {
+        !serveFixedByPhone && !serveQuestionAnswered && isVirginMatch
+    }
+
+    /// Ignorable prompt: scoring a point (see `score(_:)`) dismisses it with
+    /// the default server (Player A) already in effect, so it never blocks play.
+    private var serveFirstCard: some View {
+        watchCard(accented: true) {
+            VStack(spacing: 8) {
+                Text("Who serves first?")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
+                    .textCase(.uppercase)
+                HStack(spacing: 8) {
+                    smallButton(controller.playerAName, accent: true) {
+                        controller.setInitialServer(isPlayerA: true)
+                        serveQuestionAnswered = true
+                        WKInterfaceDevice.current().play(.click)
+                    }
+                    smallButton(controller.playerBName) {
+                        controller.setInitialServer(isPlayerA: false)
+                        serveQuestionAnswered = true
+                        WKInterfaceDevice.current().play(.click)
+                    }
+                }
+            }
+        }
+    }
+
+    private var decidingTiebreakCard: some View {
+        watchCard(accented: true) {
+            VStack(spacing: 8) {
+                Text("Sets tied")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
+                    .textCase(.uppercase)
+                Text("Decide the match by tiebreak?")
+                    .font(.caption2)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                smallButton("Tiebreak to 7", accent: true) {
+                    controller.startDecidingTiebreak(targetPoints: 7)
+                }
+                smallButton("Super tiebreak to 10", accent: true) {
+                    controller.startDecidingTiebreak(targetPoints: 10)
+                }
+                smallButton("Continue normal set") {
+                    decidingTiebreakDeclined = true
+                }
+            }
+        }
+    }
+
     private func score(_ side: PlayerSide) {
+        serveQuestionAnswered = true
         controller.addPoint(to: side)
         connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: side)
         WKInterfaceDevice.current().play(side == .a ? .click : .directionUp)

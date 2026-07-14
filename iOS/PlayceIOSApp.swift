@@ -96,6 +96,8 @@ struct CounterTabView: View {
     @EnvironmentObject private var historyStore: MatchHistoryStore
     @EnvironmentObject private var premiumStore: PremiumStore
 
+    @State private var decidingTiebreakDeclined = false
+
     var body: some View {
         Group {
             if let live = connectivity.liveMatch, live.isMatchActive {
@@ -108,7 +110,10 @@ struct CounterTabView: View {
                     onSave: {
                         historyStore.upsert(controller.finishMatchRecord(source: "iPhone"))
                     },
-                    onNewMatch: controller.resetMatch
+                    onNewMatch: {
+                        controller.resetMatch()
+                        decidingTiebreakDeclined = false
+                    }
                 )
                 .navigationTitle("Result")
             } else {
@@ -121,22 +126,26 @@ struct CounterTabView: View {
                         )
                         GarminConnectionCard()
                         MatchSetupCard(
-                            onApplyConfig: { nameA, nameB, preset in
+                            onApplyConfig: { nameA, nameB, preset, initialServerIsPlayerA in
                                 controller.setPlayerNames(nameA, nameB)
                                 controller.setMatchFormat(preset.format)
+                                controller.setInitialServer(isPlayerA: initialServerIsPlayerA)
                             },
-                            onSendToWatch: { nameA, nameB, preset in
+                            onSendToWatch: { nameA, nameB, preset, initialServerIsPlayerA in
                                 controller.setPlayerNames(nameA, nameB)
                                 controller.setMatchFormat(preset.format)
+                                controller.setInitialServer(isPlayerA: initialServerIsPlayerA)
                                 return connectivity.sendMatchConfig(
                                     playerAName: controller.playerAName,
                                     playerBName: controller.playerBName,
-                                    format: preset.format
+                                    format: preset.format,
+                                    initialServerIsPlayerA: initialServerIsPlayerA
                                 )
                                 .merged(with: garminConnectivity.sendMatchConfig(
                                     playerAName: controller.playerAName,
                                     playerBName: controller.playerBName,
-                                    format: preset.format
+                                    format: preset.format,
+                                    initialServerIsPlayerA: initialServerIsPlayerA
                                 ))
                             }
                         )
@@ -157,7 +166,10 @@ struct CounterTabView: View {
                         )
                         HStack(spacing: 12) {
                             PlayceButton("Reset Game", style: .outline, action: controller.resetGame)
-                            PlayceButton("New Match", style: .danger, action: controller.resetMatch)
+                            PlayceButton("New Match", style: .danger) {
+                                controller.resetMatch()
+                                decidingTiebreakDeclined = false
+                            }
                         }
                         if controller.state.hasTimerStarted {
                             PlayceButton("End Match", style: .solid, action: controller.finishMatch)
@@ -170,6 +182,27 @@ struct CounterTabView: View {
             }
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+        .onChange(of: controller.state.setDetailLine) { _, _ in
+            decidingTiebreakDeclined = false
+        }
+        .alert("Sets tied", isPresented: decidingTiebreakAlertBinding) {
+            Button("Tiebreak to 7") { controller.startDecidingTiebreak(targetPoints: 7) }
+            Button("Super tiebreak to 10") { controller.startDecidingTiebreak(targetPoints: 10) }
+            Button("Continue normal set", role: .cancel) { decidingTiebreakDeclined = true }
+        } message: {
+            Text("Decide the match by tiebreak?")
+        }
+    }
+
+    /// Shows the deciding-tiebreak offer only while it is actually offerable
+    /// and the user has not dismissed it for the current score.
+    private var decidingTiebreakAlertBinding: Binding<Bool> {
+        Binding(
+            get: { controller.canOfferDecidingTiebreak && !decidingTiebreakDeclined },
+            set: { isPresented in
+                if !isPresented { decidingTiebreakDeclined = true }
+            }
+        )
     }
 }
 
@@ -328,15 +361,17 @@ struct PremiumStatusMessageView: View {
 }
 
 struct MatchSetupCard: View {
-    let onApplyConfig: (String, String, FormatPreset) -> Void
-    let onSendToWatch: (String, String, FormatPreset) -> WatchConfigSendResult
+    let onApplyConfig: (String, String, FormatPreset, Bool) -> Void
+    let onSendToWatch: (String, String, FormatPreset, Bool) -> WatchConfigSendResult
 
     @State private var isExpanded = false
     @State private var playerAName = ""
     @State private var playerBName = ""
     @State private var selectedPreset: FormatPreset = .standard
+    @State private var serveChoice: ServeFirstChoice = .playerA
     @State private var watchSendState = WatchSendState.idle
     @State private var appliedLocally = false
+    @State private var serveResultText: String?
 
     var body: some View {
         PlayceCard {
@@ -390,9 +425,45 @@ struct MatchSetupCard: View {
                             }
                         }
 
+                        Text("Who serves first?")
+                            .font(PlayceType.label)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                        HStack(spacing: 8) {
+                            ServeChip(
+                                title: playerAName.isEmpty ? "Player A" : playerAName,
+                                isSelected: serveChoice == .playerA,
+                                action: {
+                                    serveChoice = .playerA
+                                    resetConfigFeedback()
+                                }
+                            )
+                            ServeChip(
+                                title: playerBName.isEmpty ? "Player B" : playerBName,
+                                isSelected: serveChoice == .playerB,
+                                action: {
+                                    serveChoice = .playerB
+                                    resetConfigFeedback()
+                                }
+                            )
+                            ServeChip(
+                                title: String(localized: "Coin toss"),
+                                isSelected: serveChoice == .coinToss,
+                                action: {
+                                    serveChoice = .coinToss
+                                    resetConfigFeedback()
+                                }
+                            )
+                        }
+                        if let serveResultText {
+                            Text(serveResultText)
+                                .font(PlayceType.bodyMedium)
+                                .foregroundStyle(PlaycePalette.textSecondary)
+                        }
+
                         HStack(spacing: 10) {
                             PlayceButton(appliedLocally ? "Applied" : "Apply", style: appliedLocally ? .solid : .outline) {
-                                onApplyConfig(playerAName, playerBName, selectedPreset)
+                                let initialServerIsPlayerA = resolveInitialServer()
+                                onApplyConfig(playerAName, playerBName, selectedPreset, initialServerIsPlayerA)
                                 appliedLocally = true
                                 watchSendState = .idle
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
@@ -400,7 +471,8 @@ struct MatchSetupCard: View {
                                 }
                             }
                             PlayceButton(watchSendState.title, style: watchSendState == .unavailable ? .outline : .solid) {
-                                let result = onSendToWatch(playerAName, playerBName, selectedPreset)
+                                let initialServerIsPlayerA = resolveInitialServer()
+                                let result = onSendToWatch(playerAName, playerBName, selectedPreset, initialServerIsPlayerA)
                                 watchSendState = WatchSendState(result)
                                 if watchSendState == .unavailable {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -416,9 +488,35 @@ struct MatchSetupCard: View {
         }
     }
 
+    /// Resolves the current serve choice to a concrete Bool, flipping a coin
+    /// when needed and surfacing the result under the chips.
+    private func resolveInitialServer() -> Bool {
+        let resolvedIsPlayerA: Bool
+        switch serveChoice {
+        case .playerA:
+            resolvedIsPlayerA = true
+        case .playerB:
+            resolvedIsPlayerA = false
+        case .coinToss:
+            resolvedIsPlayerA = Bool.random()
+        }
+        let serverName = resolvedIsPlayerA
+            ? (playerAName.isEmpty ? "Player A" : playerAName)
+            : (playerBName.isEmpty ? "Player B" : playerBName)
+        serveResultText = "\(serverName) serves first"
+        return resolvedIsPlayerA
+    }
+
     private func resetConfigFeedback() {
         appliedLocally = false
         watchSendState = .idle
+        serveResultText = nil
+    }
+
+    private enum ServeFirstChoice: Equatable {
+        case playerA
+        case playerB
+        case coinToss
     }
 
     private enum WatchSendState: Equatable {
@@ -502,6 +600,30 @@ struct FormatChip: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(isSelected ? PlaycePalette.accent : PlaycePalette.border, lineWidth: 1)
             )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ServeChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(PlayceType.labelSmallStrong)
+                .foregroundStyle(isSelected ? PlaycePalette.accent : PlaycePalette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .padding(.horizontal, 6)
+                .background(isSelected ? PlaycePalette.accentMuted : PlaycePalette.background, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? PlaycePalette.accent : PlaycePalette.border, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
     }

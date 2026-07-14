@@ -255,6 +255,112 @@ final class ScoringEngineTests: XCTestCase {
         XCTAssertEqual(score.playerB, PlayerScore())
     }
 
+    // ---- Deciding tiebreak ----
+
+    func testDecidingTiebreakCannotBeOfferedAtMatchStartOrMidSet() {
+        var score = MatchSnapshot()
+        XCTAssertFalse(ScoringEngine.canOfferDecidingTiebreak(score))
+
+        score = ScoringEngine.scorePoint(score, isPlayerA: true)
+        XCTAssertFalse(ScoringEngine.canOfferDecidingTiebreak(score))
+
+        var oneSet = MatchSnapshot()
+        for _ in 0..<6 { oneSet = winGame(for: oneSet, isPlayerA: true) }
+        XCTAssertFalse(ScoringEngine.canOfferDecidingTiebreak(oneSet))
+    }
+
+    func testDecidingTiebreakOfferedOnAnySetTieRegardlessOfBestOf() {
+        XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(scoreToTiedSets(setsEach: 1)))
+        XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(scoreToTiedSets(setsEach: 1, format: .grandSlam)))
+        XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(scoreToTiedSets(setsEach: 2, format: .grandSlam)))
+    }
+
+    func testDecidingTiebreakNotOfferedOnceNextSetStarted() {
+        var score = scoreToTiedSets(setsEach: 1)
+        score = ScoringEngine.scorePoint(score, isPlayerA: true)
+        XCTAssertFalse(ScoringEngine.canOfferDecidingTiebreak(score))
+    }
+
+    func testStartDecidingTiebreakIsNoOpWhenNotOfferable() {
+        let fresh = MatchSnapshot()
+        XCTAssertEqual(ScoringEngine.startDecidingTiebreak(fresh, targetPoints: 10), fresh)
+    }
+
+    func testDecidingTiebreakToSevenWinsTheMatchInBestOfThree() {
+        var score = ScoringEngine.startDecidingTiebreak(scoreToTiedSets(setsEach: 1), targetPoints: 7)
+        XCTAssertTrue(score.isTiebreak)
+        XCTAssertEqual(score.pointLabel(for: .a), "0")
+
+        for _ in 0..<7 { score = ScoringEngine.scorePoint(score, isPlayerA: true) }
+        XCTAssertTrue(score.isMatchOver)
+        XCTAssertEqual(score.playerA.sets, 2)
+        XCTAssertEqual(score.completedSets.last, SetScore(a: 7, b: 0))
+    }
+
+    func testDecidingTiebreakToTenAtOneAllInBestOfFiveEndsTheWholeMatch() {
+        var score = ScoringEngine.startDecidingTiebreak(scoreToTiedSets(setsEach: 1, format: .grandSlam), targetPoints: 10)
+
+        for _ in 0..<9 { score = ScoringEngine.scorePoint(score, isPlayerA: false) }
+        XCTAssertFalse(score.isMatchOver)
+
+        score = ScoringEngine.scorePoint(score, isPlayerA: false)
+        XCTAssertTrue(score.isMatchOver)
+        XCTAssertEqual(score.playerB.sets, 2) // fewer than setsToWin, still over
+        XCTAssertEqual(score.completedSets.last, SetScore(a: 0, b: 10))
+    }
+
+    func testDecidingTiebreakRequiresTwoPointLead() {
+        var score = ScoringEngine.startDecidingTiebreak(scoreToTiedSets(setsEach: 1), targetPoints: 10)
+        for _ in 0..<9 {
+            score = ScoringEngine.scorePoint(score, isPlayerA: true)
+            score = ScoringEngine.scorePoint(score, isPlayerA: false)
+        }
+        // 10-9 not enough
+        score = ScoringEngine.scorePoint(score, isPlayerA: true)
+        XCTAssertFalse(score.isMatchOver)
+        // 11-9 wins
+        score = ScoringEngine.scorePoint(score, isPlayerA: true)
+        XCTAssertTrue(score.isMatchOver)
+        XCTAssertEqual(score.completedSets.last, SetScore(a: 11, b: 9))
+    }
+
+    // ---- Event replay ----
+
+    func testReplayEventsRebuildsDecidingTiebreakState() {
+        var events: [ScoringEngine.MatchEvent] = []
+        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }  // A wins set 6-0
+        for _ in 0..<24 { events.append(.point(isPlayerA: false)) } // B wins set 6-0
+        events.append(.decidingTiebreakStarted(targetPoints: 10))
+        for _ in 0..<3 { events.append(.point(isPlayerA: true)) }
+
+        let score = ScoringEngine.replayEvents(events)
+        XCTAssertTrue(score.isTiebreak)
+        XCTAssertEqual(score.decidingTiebreakTarget, 10)
+        XCTAssertEqual(score.playerA.points, 3)
+        XCTAssertFalse(score.isMatchOver)
+    }
+
+    func testDroppingLastEventUndoesTheDecidingTiebreakChoice() {
+        var events: [ScoringEngine.MatchEvent] = []
+        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }
+        for _ in 0..<24 { events.append(.point(isPlayerA: false)) }
+        events.append(.decidingTiebreakStarted(targetPoints: 10))
+
+        let undone = ScoringEngine.replayEvents(Array(events.dropLast()))
+        XCTAssertFalse(undone.isTiebreak)
+        XCTAssertNil(undone.decidingTiebreakTarget)
+        XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(undone)) // question re-arms
+    }
+
+    private func scoreToTiedSets(setsEach: Int, format: MatchFormat = .standard) -> MatchSnapshot {
+        var score = MatchSnapshot(format: format)
+        for _ in 0..<setsEach {
+            for _ in 0..<6 { score = winGame(for: score, isPlayerA: true) }
+            for _ in 0..<6 { score = winGame(for: score, isPlayerA: false) }
+        }
+        return score
+    }
+
     private func scoreToDeuce() -> MatchSnapshot {
         var score = MatchSnapshot()
         for _ in 0..<3 { score = ScoringEngine.scorePoint(score, isPlayerA: true) }

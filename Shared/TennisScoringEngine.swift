@@ -23,7 +23,8 @@ enum ScoringEngine {
         }
 
         let winnerSets = isPlayerA ? newA.sets : newB.sets
-        let matchOver = result.completedSet != nil && winnerSets >= score.format.setsToWin
+        let matchOver = result.completedSet != nil &&
+            (score.decidingTiebreakTarget != nil || winnerSets >= score.format.setsToWin)
         let nowInTiebreak: Bool
         if matchOver || result.completedSet != nil {
             nowInTiebreak = false
@@ -52,6 +53,55 @@ enum ScoringEngine {
             score = scorePoint(score, isPlayerA: side == .a)
         }
         return score
+    }
+
+    /// A scorable match event. Match history must be kept as events (not bare
+    /// points) so that undo can also rewind a deciding-tiebreak choice.
+    enum MatchEvent: Hashable {
+        case point(isPlayerA: Bool)
+        case decidingTiebreakStarted(targetPoints: Int)
+    }
+
+    /// Replay a list of match events from a blank score to rebuild match state.
+    static func replayEvents(
+        _ events: [MatchEvent],
+        format: MatchFormat = .standard,
+        initialServerIsPlayerA: Bool = true
+    ) -> MatchSnapshot {
+        var score = MatchSnapshot(format: format, initialServerIsPlayerA: initialServerIsPlayerA)
+        for event in events {
+            switch event {
+            case .point(let isPlayerA):
+                score = scorePoint(score, isPlayerA: isPlayerA)
+            case .decidingTiebreakStarted(let targetPoints):
+                score = startDecidingTiebreak(score, targetPoints: targetPoints)
+            }
+        }
+        return score
+    }
+
+    /// A deciding tiebreak can be offered right after a completed set left the
+    /// players tied on sets (any tie: 1-1 in best-of-3 or best-of-5, 2-2 in
+    /// best-of-5), before any point of the next set is played.
+    static func canOfferDecidingTiebreak(_ score: MatchSnapshot) -> Bool {
+        !score.isMatchOver &&
+            score.decidingTiebreakTarget == nil &&
+            !score.isTiebreak &&
+            score.playerA.sets == score.playerB.sets &&
+            score.playerA.sets > 0 &&
+            score.playerA.games == 0 && score.playerB.games == 0 &&
+            score.playerA.points == 0 && score.playerB.points == 0
+    }
+
+    /// Replace the upcoming set with a standalone tiebreak to the given points
+    /// target (7 = regular, 10 = super). Whoever wins it wins the match.
+    /// No-op if the current state does not allow it.
+    static func startDecidingTiebreak(_ score: MatchSnapshot, targetPoints: Int) -> MatchSnapshot {
+        guard canOfferDecidingTiebreak(score), targetPoints >= 1 else { return score }
+        var updated = score
+        updated.isTiebreak = true
+        updated.decidingTiebreakTarget = targetPoints
+        return updated
     }
 
     private struct PointResult {
@@ -150,7 +200,7 @@ enum ScoringEngine {
     ) -> PointResult {
         let winnerPoints = winner.points + 1
         let loserPoints = loser.points
-        let targetPoints = isSuperTiebreak(score) ? 10 : format.tiebreakPoints
+        let targetPoints = score.decidingTiebreakTarget ?? (isSuperTiebreak(score) ? 10 : format.tiebreakPoints)
         let takesTiebreak = winnerPoints >= targetPoints && winnerPoints - loserPoints >= 2
 
         guard takesTiebreak else {
@@ -159,8 +209,12 @@ enum ScoringEngine {
             return PointResult(newWinner: updatedWinner, newLoser: loser)
         }
 
-        let setGamesWinner = winner.games + 1
-        let setGamesLoser = loser.games
+        // Tiebreak won -> set is won. A regular tiebreak counts as the winning
+        // game (7-6); a deciding tiebreak records its own points (e.g. 10-7)
+        // so history reads "6-4 | 3-6 | 10-7".
+        let isDeciding = score.decidingTiebreakTarget != nil
+        let setGamesWinner = isDeciding ? winnerPoints : winner.games + 1
+        let setGamesLoser = isDeciding ? loserPoints : loser.games
 
         var updatedWinner = winner
         updatedWinner.points = 0
@@ -186,7 +240,7 @@ final class ScoreboardController: ObservableObject {
     @Published private(set) var playerBName = "Player B"
     @Published private(set) var finishedSummary: MobileFinishedSummary?
 
-    private var pointHistory: [PlayerSide] = []
+    private var pointHistory: [ScoringEngine.MatchEvent] = []
     private var baseline = MatchSnapshot()
     private var timer: Timer?
     private var timerAnchor = Date()
@@ -197,9 +251,13 @@ final class ScoreboardController: ObservableObject {
         startTicker()
     }
 
+    var canOfferDecidingTiebreak: Bool {
+        ScoringEngine.canOfferDecidingTiebreak(state)
+    }
+
     func addPoint(to side: PlayerSide) {
         guard !state.isMatchOver else { return }
-        pointHistory.append(side)
+        pointHistory.append(.point(isPlayerA: side == .a))
         state = ScoringEngine.scorePoint(state, isPlayerA: side == .a)
         if state.isMatchOver {
             finishMatch()
@@ -208,12 +266,30 @@ final class ScoreboardController: ObservableObject {
 
     @discardableResult
     func undoLastPoint(for side: PlayerSide) -> Bool {
-        guard let index = pointHistory.lastIndex(of: side) else {
+        let isPlayerA = side == .a
+        guard let index = pointHistory.lastIndex(where: { event in
+            if case .point(let eventIsPlayerA) = event { return eventIsPlayerA == isPlayerA }
+            return false
+        }) else {
             return false
         }
         pointHistory.remove(at: index)
         rebuildFromHistory()
         return true
+    }
+
+    /// Offers to end the upcoming set as a standalone tiebreak (see
+    /// `ScoringEngine.canOfferDecidingTiebreak`). No-op if not currently offerable.
+    func startDecidingTiebreak(targetPoints: Int) {
+        guard ScoringEngine.canOfferDecidingTiebreak(state) else { return }
+        pointHistory.append(.decidingTiebreakStarted(targetPoints: targetPoints))
+        state = ScoringEngine.startDecidingTiebreak(state, targetPoints: targetPoints)
+    }
+
+    func setInitialServer(isPlayerA: Bool) {
+        guard pointHistory.isEmpty, finishedSummary == nil else { return }
+        state.initialServerIsPlayerA = isPlayerA
+        baseline.initialServerIsPlayerA = isPlayerA
     }
 
     func resetGame() {
@@ -222,9 +298,11 @@ final class ScoreboardController: ObservableObject {
         baseline.playerA.points = 0
         baseline.playerB.points = 0
         baseline.isTiebreak = false
+        baseline.decidingTiebreakTarget = nil
         state.playerA.points = 0
         state.playerB.points = 0
         state.isTiebreak = false
+        state.decidingTiebreakTarget = nil
     }
 
     func resetMatch() {
@@ -337,8 +415,13 @@ final class ScoreboardController: ObservableObject {
         rebuilt.elapsedSeconds = state.elapsedSeconds
         rebuilt.isTimerRunning = state.isTimerRunning
         rebuilt.hasTimerStarted = state.hasTimerStarted
-        state = pointHistory.reduce(rebuilt) { score, winner in
-            ScoringEngine.scorePoint(score, isPlayerA: winner == .a)
+        state = pointHistory.reduce(rebuilt) { score, event in
+            switch event {
+            case .point(let isPlayerA):
+                return ScoringEngine.scorePoint(score, isPlayerA: isPlayerA)
+            case .decidingTiebreakStarted(let targetPoints):
+                return ScoringEngine.startDecidingTiebreak(score, targetPoints: targetPoints)
+            }
         }
     }
 

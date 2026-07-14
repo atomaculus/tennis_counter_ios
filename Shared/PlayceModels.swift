@@ -71,6 +71,10 @@ struct MatchSnapshot: Codable, Hashable {
     var elapsedSeconds: Int = 0
     var isTimerRunning: Bool = false
     var hasTimerStarted: Bool = false
+    /// When non-nil, the match is being decided by a standalone tiebreak
+    /// (played instead of a full set after tied sets); value is the points
+    /// target (7 or 10). Winning it wins the match regardless of sets won.
+    var decidingTiebreakTarget: Int? = nil
 
     func pointLabel(for side: PlayerSide) -> String {
         switch side {
@@ -366,6 +370,39 @@ struct MatchConfigPayload: Codable, Hashable {
     var playerBName: String
     var format: MatchFormat
     var timestamp: Date = Date()
+    var initialServerIsPlayerA: Bool = true
+
+    enum CodingKeys: String, CodingKey {
+        case playerAName
+        case playerBName
+        case format
+        case timestamp
+        case initialServerIsPlayerA
+    }
+
+    init(
+        playerAName: String,
+        playerBName: String,
+        format: MatchFormat,
+        timestamp: Date = Date(),
+        initialServerIsPlayerA: Bool = true
+    ) {
+        self.playerAName = playerAName
+        self.playerBName = playerBName
+        self.format = format
+        self.timestamp = timestamp
+        self.initialServerIsPlayerA = initialServerIsPlayerA
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        playerAName = try container.decode(String.self, forKey: .playerAName)
+        playerBName = try container.decode(String.self, forKey: .playerBName)
+        format = try container.decode(MatchFormat.self, forKey: .format)
+        timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
+        // Older senders (or the Garmin bridge) may omit this key; default to true.
+        initialServerIsPlayerA = try container.decodeIfPresent(Bool.self, forKey: .initialServerIsPlayerA) ?? true
+    }
 }
 
 struct MatchSyncAckPayload: Codable, Hashable {

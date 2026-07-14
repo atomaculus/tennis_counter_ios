@@ -419,7 +419,12 @@ final class ConnectivityCoordinator: NSObject, ObservableObject {
     }
 
     @discardableResult
-    func sendMatchConfig(playerAName: String, playerBName: String, format: MatchFormat) -> WatchConfigSendResult {
+    func sendMatchConfig(
+        playerAName: String,
+        playerBName: String,
+        format: MatchFormat,
+        initialServerIsPlayerA: Bool = true
+    ) -> WatchConfigSendResult {
         guard let session else {
             syncStatus = "WatchConnectivity unavailable"
             return .unavailable
@@ -445,7 +450,8 @@ final class ConnectivityCoordinator: NSObject, ObservableObject {
         let payload = MatchConfigPayload(
             playerAName: playerAName,
             playerBName: playerBName,
-            format: format
+            format: format,
+            initialServerIsPlayerA: initialServerIsPlayerA
         )
         guard let encoded = try? encoder.encode(payload) else {
             syncStatus = "Failed to encode config"
