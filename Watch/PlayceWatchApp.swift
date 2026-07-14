@@ -140,7 +140,7 @@ struct WatchRootView: View {
             }
 
             smallButton("Finish Match", accent: true) {
-                finishMatch()
+                Task { await finishMatch() }
             }
 
             smallButton("New Match", danger: true) {
@@ -272,18 +272,24 @@ struct WatchRootView: View {
         connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: side)
         WKInterfaceDevice.current().play(side == .a ? .click : .directionUp)
         if controller.finishedSummary != nil {
-            finishMatch()
+            Task { await finishMatch() }
         }
     }
 
-    private func finishMatch() {
+    @MainActor
+    private func finishMatch() async {
         if controller.finishedSummary == nil {
             controller.finishMatch()
         }
-        finishedRecord = controller.finishMatchRecord(source: "watchOS")
+        let metrics = await workoutManager.endWorkout()
+        finishedRecord = controller.finishMatchRecord(
+            source: "watchOS",
+            caloriesKcal: metrics.caloriesKcal,
+            avgHeartRateBpm: metrics.avgHeartRateBpm,
+            maxHeartRateBpm: metrics.maxHeartRateBpm
+        )
         savedFinishedRecord = false
         connectivity.clearLiveMatch()
-        workoutManager.endWorkout()
         WKInterfaceDevice.current().play(.success)
     }
 
@@ -466,13 +472,56 @@ final class WorkoutSessionManager: NSObject, ObservableObject {
         }
     }
 
-    func endWorkout() {
-        let builder = builder
-        builder?.endCollection(withEnd: Date()) { _, _ in
-            builder?.finishWorkout { _, _ in }
+    /// Ends the active workout session and returns the calories/heart-rate
+    /// metrics collected during it. Returns an empty snapshot when no workout
+    /// was running or HealthKit data is unavailable, so callers can always
+    /// pass the result straight into `finishMatchRecord`.
+    func endWorkout() async -> WorkoutHealthMetrics {
+        guard let builder, let session else { return WorkoutHealthMetrics() }
+
+        await withCheckedContinuation { continuation in
+            builder.endCollection(withEnd: Date()) { _, _ in
+                continuation.resume()
+            }
         }
-        session?.end()
-        session = nil
+
+        let metrics = WorkoutHealthMetrics(
+            caloriesKcal: statisticValue(from: builder, identifier: .activeEnergyBurned, unit: .kilocalorie()) { $0.sumQuantity() },
+            avgHeartRateBpm: statisticValue(from: builder, identifier: .heartRate, unit: Self.heartRateUnit) { $0.averageQuantity() },
+            maxHeartRateBpm: statisticValue(from: builder, identifier: .heartRate, unit: Self.heartRateUnit) { $0.maximumQuantity() }
+        )
+
+        await withCheckedContinuation { continuation in
+            builder.finishWorkout { _, _ in
+                continuation.resume()
+            }
+        }
+
+        session.end()
+        self.session = nil
         self.builder = nil
+        return metrics
     }
+
+    private static let heartRateUnit = HKUnit.count().unitDivided(by: .minute())
+
+    private func statisticValue(
+        from builder: HKLiveWorkoutBuilder,
+        identifier: HKQuantityTypeIdentifier,
+        unit: HKUnit,
+        quantity: (HKStatistics) -> HKQuantity?
+    ) -> Double? {
+        guard let type = HKObjectType.quantityType(forIdentifier: identifier),
+              let statistics = builder.statistics(for: type) else {
+            return nil
+        }
+        return quantity(statistics)?.doubleValue(for: unit)
+    }
+}
+
+/// Calories/heart-rate summary collected from the HealthKit workout, if any.
+struct WorkoutHealthMetrics {
+    var caloriesKcal: Double?
+    var avgHeartRateBpm: Double?
+    var maxHeartRateBpm: Double?
 }

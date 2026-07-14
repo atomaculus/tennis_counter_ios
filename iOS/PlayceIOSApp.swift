@@ -8,10 +8,22 @@ struct PlayceIOSApp: App {
     @StateObject private var premiumStore = PremiumStore()
     @StateObject private var connectivity = ConnectivityCoordinator.shared
     @StateObject private var garminConnectivity = GarminConnectivityCoordinator.shared
+    @State private var showOnboarding = !OnboardingPrefs.isCompleted()
 
     var body: some Scene {
         WindowGroup {
-            PhoneRootView()
+            Group {
+                if showOnboarding {
+                    OnboardingView {
+                        OnboardingPrefs.markCompleted()
+                        withAnimation {
+                            showOnboarding = false
+                        }
+                    }
+                } else {
+                    PhoneRootView()
+                }
+            }
                 .environmentObject(historyStore)
                 .environmentObject(premiumStore)
                 .environmentObject(connectivity)
@@ -57,6 +69,106 @@ struct PhoneRootView: View {
         }
         .tint(PlaycePalette.accent)
         .preferredColorScheme(.dark)
+    }
+}
+
+/// Tracks whether the user has already dismissed the first-run onboarding,
+/// mirroring the Android mobile app's `OnboardingPrefs`.
+enum OnboardingPrefs {
+    private static let completedKey = "playce.onboarding.completed"
+
+    static func isCompleted(defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: completedKey)
+    }
+
+    static func markCompleted(defaults: UserDefaults = .standard) {
+        defaults.set(true, forKey: completedKey)
+    }
+}
+
+private struct OnboardingPage {
+    let emoji: String
+    let title: String
+    let description: String
+}
+
+private let onboardingPages: [OnboardingPage] = [
+    OnboardingPage(
+        emoji: "🎾",
+        title: "Score your matches",
+        description: "Tap to add points with full tennis scoring: deuce, advantage, tiebreaks, and configurable formats."
+    ),
+    OnboardingPage(
+        emoji: "⌚",
+        title: "Play from your watch",
+        description: "Use your Apple Watch as a courtside scorer. Your iPhone syncs automatically."
+    ),
+    OnboardingPage(
+        emoji: "📊",
+        title: "Track your history",
+        description: "Every match is saved. Review your stats, share results, and see your progress over time."
+    )
+]
+
+/// First-run, 3-page onboarding shown before `PhoneRootView` until the user
+/// finishes or skips it (see `OnboardingPrefs`).
+struct OnboardingView: View {
+    let onFinish: () -> Void
+
+    @State private var currentPage = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: 48)
+
+            WordmarkView(font: .system(size: 28, weight: .black, design: .rounded), width: 156)
+
+            TabView(selection: $currentPage) {
+                ForEach(Array(onboardingPages.enumerated()), id: \.offset) { index, page in
+                    OnboardingPageContent(page: page)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+
+            VStack(spacing: 8) {
+                if currentPage < onboardingPages.count - 1 {
+                    PlayceButton("Next", style: .solid) {
+                        withAnimation { currentPage += 1 }
+                    }
+                    PlayceButton("Skip", style: .outline, action: onFinish)
+                } else {
+                    PlayceButton("Get Started", style: .solid, action: onFinish)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct OnboardingPageContent: View {
+    let page: OnboardingPage
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(page.emoji)
+                .font(.system(size: 64))
+            Text(LocalizedStringKey(page.title))
+                .font(PlayceType.headline)
+                .foregroundStyle(PlaycePalette.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(LocalizedStringKey(page.description))
+                .font(PlayceType.body)
+                .foregroundStyle(PlaycePalette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
     }
 }
 
@@ -1184,6 +1296,25 @@ struct MatchDetailView: View {
                     }
                 }
 
+                if record.caloriesKcal != nil || record.avgHeartRateBpm != nil || record.maxHeartRateBpm != nil {
+                    PlayceCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Activity")
+                                .font(PlayceType.title)
+                                .foregroundStyle(PlaycePalette.textPrimary)
+                            if let calories = record.caloriesKcal {
+                                HealthMetricRow(label: "Calories", value: "\(Int(calories.rounded())) kcal")
+                            }
+                            if let avgHeartRate = record.avgHeartRateBpm {
+                                HealthMetricRow(label: "Avg HR", value: "\(Int(avgHeartRate.rounded())) bpm")
+                            }
+                            if let maxHeartRate = record.maxHeartRateBpm {
+                                HealthMetricRow(label: "Max HR", value: "\(Int(maxHeartRate.rounded())) bpm")
+                            }
+                        }
+                    }
+                }
+
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Metadata")
@@ -1263,7 +1394,9 @@ struct MatchDetailView: View {
             ShareCardEditorView(
                 data: MatchShareCardData(record: record),
                 photoURL: historyStore.photoURL(for: record),
-                matchID: record.id
+                matchID: record.id,
+                initialPlayerAName: record.playerAName,
+                initialPlayerBName: record.playerBName
             )
         }
         .task(id: pickedPhoto) {
@@ -1717,11 +1850,29 @@ struct ShareCardEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var layout = ShareCardLayout()
+    @State private var layout: ShareCardLayout
     @State private var shareURL: ShareURLItem?
     @State private var errorText: String?
     @State private var offsetAtDragStart: CGSize?
     @State private var blockSize: CGSize = .zero
+
+    /// Names are prefilled from the saved match record when available, so the
+    /// user does not have to retype them just to share a card.
+    init(
+        data: MatchShareCardData,
+        photoURL: URL?,
+        matchID: UUID,
+        initialPlayerAName: String? = nil,
+        initialPlayerBName: String? = nil
+    ) {
+        self.data = data
+        self.photoURL = photoURL
+        self.matchID = matchID
+        var initialLayout = ShareCardLayout()
+        initialLayout.playerAName = initialPlayerAName ?? ""
+        initialLayout.playerBName = initialPlayerBName ?? ""
+        _layout = State(initialValue: initialLayout)
+    }
 
     var body: some View {
         NavigationStack {
@@ -1891,6 +2042,22 @@ struct ShareCardEditorView: View {
         } catch {
             errorText = "Failed to render share card."
         }
+    }
+}
+
+struct HealthMetricRow: View {
+    let label: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(PlaycePalette.textSecondary)
+            Spacer()
+            Text(value)
+                .foregroundStyle(PlaycePalette.textPrimary)
+        }
+        .font(PlayceType.bodyMedium)
     }
 }
 

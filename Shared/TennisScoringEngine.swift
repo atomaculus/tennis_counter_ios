@@ -373,7 +373,12 @@ final class ScoreboardController: ObservableObject {
         )
     }
 
-    func finishMatchRecord(source: String) -> FinishedMatchRecord {
+    func finishMatchRecord(
+        source: String,
+        caloriesKcal: Double? = nil,
+        avgHeartRateBpm: Double? = nil,
+        maxHeartRateBpm: Double? = nil
+    ) -> FinishedMatchRecord {
         let detailText: String
         if let finishedSummary {
             detailText = "\(finishedSummary.playerAName) vs \(finishedSummary.playerBName) | \(finishedSummary.setsDetail)"
@@ -389,7 +394,12 @@ final class ScoreboardController: ObservableObject {
             detailText: detailText,
             photoBookmark: nil,
             source: source,
-            idempotencyKey: finishedIdempotencyKey
+            idempotencyKey: finishedIdempotencyKey,
+            playerAName: playerAName,
+            playerBName: playerBName,
+            caloriesKcal: caloriesKcal,
+            avgHeartRateBpm: avgHeartRateBpm,
+            maxHeartRateBpm: maxHeartRateBpm
         )
     }
 

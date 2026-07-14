@@ -145,6 +145,13 @@ struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var photoBookmark: Data?
     var source: String
     var idempotencyKey: String
+    // Older records (or ones synced before this field existed) decode these as nil.
+    var playerAName: String? = nil
+    var playerBName: String? = nil
+    // Populated from the HealthKit workout when available at save time; nil otherwise.
+    var caloriesKcal: Double? = nil
+    var avgHeartRateBpm: Double? = nil
+    var maxHeartRateBpm: Double? = nil
 }
 
 struct MatchHistoryArchive: Codable, Hashable {
