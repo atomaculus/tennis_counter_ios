@@ -1,5 +1,11 @@
 # Android Backport Candidates
 
+> **Auditoría 2026-07-14** (verificada contra código, ver estado por ítem):
+> - **Ya resuelto**: lado inicial de saque (Kotlin ya arranca Right, test `serve starts on right then alternates`), timer visible en Wear (footer Start/Pause/Resume existe), undo (UX oficial definida: tap = punto / long-press = deshacer; Apple Watch alineado en `5d6528b`).
+> - **Ya agendado**: sync status card (= D6, lote F0) y status de broadcasting en Wear (mismo lote, con copy de usuario, no "ACK inserted").
+> - **Gaps reales confirmados, implementar** (lote "backport" post-QA): eliminar partido en Android (hoy NO existe ninguna forma de borrar), timer live congelado en el teléfono Android entre puntos (extrapolar localmente con isMatchActive en vez de ticks por radio), indicador de saque en counter mobile (trivial ahora que existe `currentServerIsPlayerA()`), feedback del botón Aplicar (Send ya lo tiene, Apply no).
+> - **Baja prioridad**: preview de share card en detalle Android (el editor ya existe).
+
 Este documento lista decisiones nacidas o refinadas en iOS/watchOS que podrian pasar a ser comportamiento oficial del producto y luego replicarse en Android/Wear OS. No implica modificar Android automaticamente.
 
 ## Regla de trabajo
