@@ -96,8 +96,6 @@
 "MATCH RESULT" = "MATCH RESULT";
 "Tracked with PLAYCE" = "Tracked with PLAYCE";
 "LIVE MATCH" = "LIVE MATCH";
-"Undo A" = "Undo A";
-"Undo B" = "Undo B";
 "Timer" = "Timer";
 "Finish Match" = "Finish Match";
 "Start New" = "Start New";
@@ -155,3 +153,15 @@
 "Calories" = "Calories";
 "Avg HR" = "Avg HR";
 "Max HR" = "Max HR";
+"What's new" = "What's new";
+"Got it" = "Got it";
+"New watch controls" = "New watch controls";
+"Tap the score button to add a point. Hold it to undo the last point." = "Tap the score button to add a point. Hold it to undo the last point.";
+"Choose who serves first" = "Choose who serves first";
+"Pick the starting server when setting up a match, from your phone or watch." = "Pick the starting server when setting up a match, from your phone or watch.";
+"Deciding tiebreak" = "Deciding tiebreak";
+"When sets are tied, settle the match with a tiebreak instead of a final set." = "When sets are tied, settle the match with a tiebreak instead of a final set.";
+"Tap = point. Hold = undo." = "Tap = point. Hold = undo.";
+"OK" = "OK";
+"Point for %@" = "Point for %@";
+"Double tap and hold to undo the last point" = "Double tap and hold to undo the last point";

@@ -45,6 +45,12 @@ struct WatchRootView: View {
     @State private var serveQuestionAnswered = false
     @State private var decidingTiebreakDeclined = false
 
+    /// True on first appearance after an update that changed on-watch
+    /// behavior (see `WhatsNewPrefs`); dismissing marks it seen so it is not
+    /// shown again until the next content bump. Independent from the iOS
+    /// app's own flag (separate `UserDefaults.standard` per device).
+    @State private var showWhatsNew = WhatsNewPrefs.shouldShow()
+
     var body: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -75,6 +81,12 @@ struct WatchRootView: View {
         }
         .onChange(of: controller.state.setDetailLine) { _, _ in
             decidingTiebreakDeclined = false
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewWatchView {
+                WhatsNewPrefs.markSeen()
+                showWhatsNew = false
+            }
         }
     }
 
@@ -111,21 +123,18 @@ struct WatchRootView: View {
             }
 
             HStack(spacing: 8) {
-                roundAction("+A") { score(.a) }
-                roundAction("+B") { score(.b) }
-            }
-
-            HStack(spacing: 8) {
-                smallButton("Undo A") {
-                    if controller.undoLastPoint(for: .a) {
-                        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
-                    }
-                }
-                smallButton("Undo B") {
-                    if controller.undoLastPoint(for: .b) {
-                        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
-                    }
-                }
+                PointButton(
+                    label: "+A",
+                    accessibilityName: controller.playerAName,
+                    onTap: { score(.a) },
+                    onLongPress: { undo(.a) }
+                )
+                PointButton(
+                    label: "+B",
+                    accessibilityName: controller.playerBName,
+                    onTap: { score(.b) },
+                    onLongPress: { undo(.b) }
+                )
             }
 
             HStack(spacing: 8) {
@@ -276,6 +285,14 @@ struct WatchRootView: View {
         }
     }
 
+    /// Long-press on a player's point button: undo their last point. Uses a
+    /// distinct `.retry` haptic so it's clearly different from scoring.
+    private func undo(_ side: PlayerSide) {
+        guard controller.undoLastPoint(for: side) else { return }
+        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+        WKInterfaceDevice.current().play(.retry)
+    }
+
     @MainActor
     private func finishMatch() async {
         if controller.finishedSummary == nil {
@@ -376,17 +393,6 @@ struct WatchRootView: View {
             .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: Capsule())
     }
 
-    private func roundAction(_ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.headline.weight(.black))
-                .foregroundStyle(.black)
-                .frame(width: 58, height: 58)
-                .background(Color(red: 0.72, green: 1.0, blue: 0.17), in: Circle())
-        }
-        .buttonStyle(.plain)
-    }
-
     private func smallButton(_ title: String, accent: Bool = false, danger: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
@@ -422,6 +428,91 @@ struct WatchRootView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(accented ? Color(red: 0.72, green: 1.0, blue: 0.17).opacity(0.25) : Color(red: 0.17, green: 0.17, blue: 0.17), lineWidth: 1)
             )
+    }
+}
+
+/// Big round point button: tap scores a point, long-press undoes the last
+/// point for that player (mirrors the Wear OS sibling app's gesture pattern).
+///
+/// Uses a `simultaneousGesture(LongPressGesture)` alongside the `Button`'s own
+/// tap action rather than two exclusive gestures, then guards the tap with
+/// `isLongPressing` so a completed long-press never also fires the tap: the
+/// long-press's `onEnded` always runs first (while the finger/crown-press is
+/// still down, as soon as `minimumDuration` elapses), so by the time the
+/// touch is released and the Button's action would fire, the flag is already
+/// set and the tap is skipped.
+private struct PointButton: View {
+    let label: String
+    let accessibilityName: String
+    let onTap: () -> Void
+    let onLongPress: () -> Void
+
+    @State private var isLongPressing = false
+
+    var body: some View {
+        Button(action: handleTap) {
+            Text(label)
+                .font(.headline.weight(.black))
+                .foregroundStyle(.black)
+                .frame(width: 58, height: 58)
+                .background(Color(red: 0.72, green: 1.0, blue: 0.17), in: Circle())
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.5)
+                .onEnded { _ in
+                    isLongPressing = true
+                    onLongPress()
+                }
+        )
+        .accessibilityLabel(Text("Point for \(accessibilityName)"))
+        .accessibilityHint(Text("Double tap and hold to undo the last point"))
+    }
+
+    private func handleTap() {
+        if isLongPressing {
+            // Long-press already handled this press; swallow the trailing tap.
+            isLongPressing = false
+            return
+        }
+        onTap()
+    }
+}
+
+/// Single-screen "what's new" overlay shown once on the Watch after an update
+/// that changed the on-watch gestures (see `WhatsNewPrefs`).
+private struct WhatsNewWatchView: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                Text("What's new")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
+                    .textCase(.uppercase)
+                Text("New watch controls")
+                    .font(.headline.weight(.bold))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.white)
+                Text("Tap = point. Hold = undo.")
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.gray)
+                Button(action: onDismiss) {
+                    Text("OK")
+                        .font(.system(size: 14, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .foregroundStyle(.black)
+                        .background(Color(red: 0.72, green: 1.0, blue: 0.17), in: Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+        }
+        .background(Color.black.ignoresSafeArea())
     }
 }
 

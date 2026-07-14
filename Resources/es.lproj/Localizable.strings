@@ -96,8 +96,6 @@
 "MATCH RESULT" = "RESULTADO";
 "Tracked with PLAYCE" = "Registrado con PLAYCE";
 "LIVE MATCH" = "PARTIDO EN VIVO";
-"Undo A" = "Deshacer A";
-"Undo B" = "Deshacer B";
 "Timer" = "Tiempo";
 "Finish Match" = "Finalizar";
 "Start New" = "Nuevo";
@@ -155,3 +153,15 @@
 "Calories" = "Calorías";
 "Avg HR" = "FC media";
 "Max HR" = "FC máxima";
+"What's new" = "Novedades";
+"Got it" = "Entendido";
+"New watch controls" = "Nuevos controles del reloj";
+"Tap the score button to add a point. Hold it to undo the last point." = "Toca el botón de puntos para sumar. Mantenlo presionado para deshacer el último punto.";
+"Choose who serves first" = "Elige quién saca primero";
+"Pick the starting server when setting up a match, from your phone or watch." = "Elige quién saca primero al configurar el partido, desde tu iPhone o tu reloj.";
+"Deciding tiebreak" = "Tie-break decisivo";
+"When sets are tied, settle the match with a tiebreak instead of a final set." = "Cuando los sets están empatados, define el partido con un tie-break en lugar de un set final.";
+"Tap = point. Hold = undo." = "Toca = punto. Mantén presionado = deshacer.";
+"OK" = "OK";
+"Point for %@" = "Punto para %@";
+"Double tap and hold to undo the last point" = "Toca dos veces y mantén presionado para deshacer el último punto";

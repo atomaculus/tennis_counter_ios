@@ -16,6 +16,9 @@ struct PlayceIOSApp: App {
                 if showOnboarding {
                     OnboardingView {
                         OnboardingPrefs.markCompleted()
+                        // A user who just finished onboarding doesn't need the
+                        // separate "what's new" prompt right after it.
+                        WhatsNewPrefs.markSeen()
                         withAnimation {
                             showOnboarding = false
                         }
@@ -43,6 +46,7 @@ struct PlayceIOSApp: App {
 
 struct PhoneRootView: View {
     @StateObject private var localCounter = ScoreboardController()
+    @State private var showWhatsNew = false
 
     var body: some View {
         TabView {
@@ -69,6 +73,20 @@ struct PhoneRootView: View {
         }
         .tint(PlaycePalette.accent)
         .preferredColorScheme(.dark)
+        .onAppear {
+            // Onboarding (which also marks "what's new" as seen, see
+            // PlayceIOSApp above) is only skipped once completed, so this
+            // check is mostly defensive: never show both prompts together.
+            if OnboardingPrefs.isCompleted() && WhatsNewPrefs.shouldShow() {
+                showWhatsNew = true
+            }
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView {
+                WhatsNewPrefs.markSeen()
+                showWhatsNew = false
+            }
+        }
     }
 }
 
@@ -147,6 +165,60 @@ struct OnboardingView: View {
         }
         .background(PlaycePalette.background.ignoresSafeArea())
         .preferredColorScheme(.dark)
+    }
+}
+
+/// Sheet shown once after an update that changes user-facing behavior (see
+/// `WhatsNewPrefs`/`WhatsNewContent`), so existing users (who never see
+/// `OnboardingView`) still find out about the change.
+struct WhatsNewView: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("What's new")
+                        .font(PlayceType.headline)
+                        .foregroundStyle(PlaycePalette.textPrimary)
+                        .padding(.top, 32)
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(Array(WhatsNewContent.entries.enumerated()), id: \.offset) { _, entry in
+                            WhatsNewRow(entry: entry)
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+
+            PlayceButton("Got it", style: .solid, action: onDismiss)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+        }
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct WhatsNewRow: View {
+    let entry: WhatsNewEntry
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(PlaycePalette.accent)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(LocalizedStringKey(entry.title))
+                    .font(PlayceType.bodyStrong)
+                    .foregroundStyle(PlaycePalette.textPrimary)
+                Text(LocalizedStringKey(entry.description))
+                    .font(PlayceType.bodyMedium)
+                    .foregroundStyle(PlaycePalette.textSecondary)
+            }
+        }
     }
 }
 

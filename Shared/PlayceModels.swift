@@ -437,6 +437,57 @@ enum WatchConfigSendResult {
     }
 }
 
+/// A single bullet shown in the "What's new" prompt. `title`/`description`
+/// are used as localization keys (see `Localizable.strings`), mirroring how
+/// `OnboardingPage` content is looked up in `PlayceIOSApp.swift`.
+struct WhatsNewEntry: Hashable {
+    let title: String
+    let description: String
+}
+
+/// Content shown in the "What's new" prompt (iOS sheet, watchOS overlay)
+/// after an update that changes user-facing behavior. Bump `currentVersion`
+/// and replace `entries` whenever a new change needs surfacing to existing
+/// users; only the entries for the current version are ever shown.
+enum WhatsNewContent {
+    static let currentVersion = 1
+
+    static let entries: [WhatsNewEntry] = [
+        WhatsNewEntry(
+            title: "New watch controls",
+            description: "Tap the score button to add a point. Hold it to undo the last point."
+        ),
+        WhatsNewEntry(
+            title: "Choose who serves first",
+            description: "Pick the starting server when setting up a match, from your phone or watch."
+        ),
+        WhatsNewEntry(
+            title: "Deciding tiebreak",
+            description: "When sets are tied, settle the match with a tiebreak instead of a final set."
+        )
+    ]
+}
+
+/// Tracks the last "What's new" version a user has seen, in
+/// `playce.whatsnew.lastSeenVersion`. iOS and watchOS each call this with
+/// their own (device-local) `UserDefaults.standard`, so the flag is
+/// independent per platform even though the code is shared.
+enum WhatsNewPrefs {
+    private static let lastSeenVersionKey = "playce.whatsnew.lastSeenVersion"
+
+    static func lastSeenVersion(defaults: UserDefaults = .standard) -> Int {
+        defaults.integer(forKey: lastSeenVersionKey)
+    }
+
+    static func shouldShow(currentVersion: Int = WhatsNewContent.currentVersion, defaults: UserDefaults = .standard) -> Bool {
+        lastSeenVersion(defaults: defaults) < currentVersion
+    }
+
+    static func markSeen(version: Int = WhatsNewContent.currentVersion, defaults: UserDefaults = .standard) {
+        defaults.set(version, forKey: lastSeenVersionKey)
+    }
+}
+
 enum PlayceFormatting {
     static func elapsed(_ seconds: Int) -> String {
         let hours = seconds / 3600
