@@ -173,3 +173,12 @@
 "OK" = "OK";
 "Point for %@" = "Point for %@";
 "Double tap and hold to undo the last point" = "Double tap and hold to undo the last point";
+"Always-on scoreboard" = "Always-on scoreboard";
+"The watch keeps your match on screen during the workout, with a simplified scoreboard when you lower your wrist." = "The watch keeps your match on screen during the workout, with a simplified scoreboard when you lower your wrist.";
+"Safer undo" = "Safer undo";
+"Press and hold now asks for confirmation before undoing the point." = "Press and hold now asks for confirmation before undoing the point.";
+"Undo last point?" = "Undo last point?";
+"Undo (%@)" = "Undo (%@)";
+"Match stays visible" = "Match stays visible";
+"See your score with your wrist down. Hold now asks to confirm before undo." = "See your score with your wrist down. Hold now asks to confirm before undo.";
+"%d min" = "%d min";

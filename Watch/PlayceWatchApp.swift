@@ -22,6 +22,7 @@ struct PlayceWatchApp: App {
                     connectivity.activate()
                     await workoutManager.prepareAuthorization()
                     workoutManager.startMatchWorkoutIfPossible()
+                    WKExtension.shared().isFrontmostTimeoutExtended = true
                 }
         }
     }
@@ -32,10 +33,16 @@ struct WatchRootView: View {
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
     @EnvironmentObject private var workoutManager: WorkoutSessionManager
     @EnvironmentObject private var historyStore: MatchHistoryStore
+    /// True when the wrist is down / the display is in Always-On low-power
+    /// mode. Drives the simplified, button-less scoreboard in `liveCounter`.
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
 
     @State private var finishedRecord: FinishedMatchRecord?
     @State private var transientMessage: String?
     @State private var savedFinishedRecord = false
+    /// Player whose last point is pending undo confirmation; non-nil drives
+    /// the undo `.confirmationDialog` below.
+    @State private var pendingUndoSide: PlayerSide? = nil
 
     /// True once the iPhone has pushed a match config that already fixed who
     /// serves first, so the on-watch prompt should not ask again.
@@ -111,6 +118,29 @@ struct WatchRootView: View {
                 workoutManager.startMatchWorkoutIfPossible()
             }
         }
+        // Long-press on a point button stages an undo here instead of firing
+        // it immediately; Cancel is added automatically by watchOS.
+        .confirmationDialog(
+            "Undo last point?",
+            isPresented: Binding(
+                get: { pendingUndoSide != nil },
+                set: { isPresented in
+                    if !isPresented { pendingUndoSide = nil }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let pendingUndoSide {
+                let name = pendingUndoSide == .a ? controller.playerAName : controller.playerBName
+                Button(
+                    String(format: NSLocalizedString("Undo (%@)", comment: "Confirmation button to undo the last point, with the player's name"), name),
+                    role: .destructive
+                ) {
+                    undo(pendingUndoSide)
+                    self.pendingUndoSide = nil
+                }
+            }
+        }
     }
 
     private var liveCounter: some View {
@@ -135,9 +165,15 @@ struct WatchRootView: View {
                         compactStat("SETS", "\(controller.state.playerA.sets)-\(controller.state.playerB.sets)")
                         compactStat("GAMES", "\(controller.state.playerA.games)-\(controller.state.playerB.games)")
                     }
-                    Text(PlayceFormatting.elapsed(controller.state.elapsedSeconds))
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(.white)
+                    if isLuminanceReduced {
+                        Text(PlayceFormatting.elapsedNoSeconds(controller.state.elapsedSeconds))
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Text(PlayceFormatting.elapsed(controller.state.elapsedSeconds))
+                            .font(.headline.weight(.bold))
+                            .foregroundStyle(.white)
+                    }
                     Text("\(controller.state.pointLabel(for: .a)) - \(controller.state.pointLabel(for: .b))")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
@@ -145,35 +181,39 @@ struct WatchRootView: View {
                 }
             }
 
-            HStack(spacing: 8) {
-                PointButton(
-                    label: "+A",
-                    accessibilityName: controller.playerAName,
-                    onTap: { score(.a) },
-                    onLongPress: { undo(.a) }
-                )
-                PointButton(
-                    label: "+B",
-                    accessibilityName: controller.playerBName,
-                    onTap: { score(.b) },
-                    onLongPress: { undo(.b) }
-                )
-            }
-
-            HStack(spacing: 8) {
-                smallButton("Timer") {
-                    controller.toggleTimer()
-                    connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+            // Always-on Display: no interactive controls (can't be tapped
+            // without waking the screen) and no neon-bright buttons.
+            if !isLuminanceReduced {
+                HStack(spacing: 8) {
+                    PointButton(
+                        label: "+A",
+                        accessibilityName: controller.playerAName,
+                        onTap: { score(.a) },
+                        onLongPress: { pendingUndoSide = .a }
+                    )
+                    PointButton(
+                        label: "+B",
+                        accessibilityName: controller.playerBName,
+                        onTap: { score(.b) },
+                        onLongPress: { pendingUndoSide = .b }
+                    )
                 }
-                smallButton("Actions") {
-                    showActionsMenu = true
-                }
-            }
 
-            if let transientMessage {
-                Text(transientMessage)
-                    .font(.caption2)
-                    .foregroundStyle(.white)
+                HStack(spacing: 8) {
+                    smallButton("Timer") {
+                        controller.toggleTimer()
+                        connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+                    }
+                    smallButton("Actions") {
+                        showActionsMenu = true
+                    }
+                }
+
+                if let transientMessage {
+                    Text(transientMessage)
+                        .font(.caption2)
+                        .foregroundStyle(.white)
+                }
             }
         }
     }
@@ -525,11 +565,11 @@ private struct WhatsNewWatchView: View {
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
                     .textCase(.uppercase)
-                Text("New watch controls")
+                Text("Match stays visible")
                     .font(.headline.weight(.bold))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.white)
-                Text("Tap = point. Hold = undo.")
+                Text("See your score with your wrist down. Hold now asks to confirm before undo.")
                     .font(.footnote)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.gray)

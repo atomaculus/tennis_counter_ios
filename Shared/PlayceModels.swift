@@ -450,20 +450,16 @@ struct WhatsNewEntry: Hashable {
 /// and replace `entries` whenever a new change needs surfacing to existing
 /// users; only the entries for the current version are ever shown.
 enum WhatsNewContent {
-    static let currentVersion = 1
+    static let currentVersion = 2
 
     static let entries: [WhatsNewEntry] = [
         WhatsNewEntry(
-            title: "New watch controls",
-            description: "Tap the score button to add a point. Hold it to undo the last point."
+            title: "Always-on scoreboard",
+            description: "The watch keeps your match on screen during the workout, with a simplified scoreboard when you lower your wrist."
         ),
         WhatsNewEntry(
-            title: "Choose who serves first",
-            description: "Pick the starting server when setting up a match, from your phone or watch."
-        ),
-        WhatsNewEntry(
-            title: "Deciding tiebreak",
-            description: "When sets are tied, settle the match with a tiebreak instead of a final set."
+            title: "Safer undo",
+            description: "Press and hold now asks for confirmation before undoing the point."
         )
     ]
 }
@@ -497,6 +493,18 @@ enum PlayceFormatting {
             return String(format: "%d:%02d:%02d", hours, minutes, remainder)
         }
         return String(format: "%02d:%02d", minutes, remainder)
+    }
+
+    /// Always-on Display variant of `elapsed(_:)`: no seconds, since AOD
+    /// updates at most once a minute. `"h:mm"` once an hour has elapsed,
+    /// otherwise `"m min"` (e.g. 754s -> "12 min", 3900s -> "1:05").
+    static func elapsedNoSeconds(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        if hours > 0 {
+            return String(format: "%d:%02d", hours, minutes)
+        }
+        return String(format: NSLocalizedString("%d min", comment: "Elapsed match time without seconds, always-on display"), minutes)
     }
 
     static func elapsedLong(_ seconds: Int) -> String {
