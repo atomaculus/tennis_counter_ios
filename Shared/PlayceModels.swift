@@ -71,6 +71,10 @@ struct MatchSnapshot: Codable, Hashable {
     var elapsedSeconds: Int = 0
     var isTimerRunning: Bool = false
     var hasTimerStarted: Bool = false
+    /// When non-nil, the match is being decided by a standalone tiebreak
+    /// (played instead of a full set after tied sets); value is the points
+    /// target (7 or 10). Winning it wins the match regardless of sets won.
+    var decidingTiebreakTarget: Int? = nil
 
     func pointLabel(for side: PlayerSide) -> String {
         switch side {
@@ -141,6 +145,13 @@ struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var photoBookmark: Data?
     var source: String
     var idempotencyKey: String
+    // Older records (or ones synced before this field existed) decode these as nil.
+    var playerAName: String? = nil
+    var playerBName: String? = nil
+    // Populated from the HealthKit workout when available at save time; nil otherwise.
+    var caloriesKcal: Double? = nil
+    var avgHeartRateBpm: Double? = nil
+    var maxHeartRateBpm: Double? = nil
 }
 
 struct MatchHistoryArchive: Codable, Hashable {
@@ -366,6 +377,39 @@ struct MatchConfigPayload: Codable, Hashable {
     var playerBName: String
     var format: MatchFormat
     var timestamp: Date = Date()
+    var initialServerIsPlayerA: Bool = true
+
+    enum CodingKeys: String, CodingKey {
+        case playerAName
+        case playerBName
+        case format
+        case timestamp
+        case initialServerIsPlayerA
+    }
+
+    init(
+        playerAName: String,
+        playerBName: String,
+        format: MatchFormat,
+        timestamp: Date = Date(),
+        initialServerIsPlayerA: Bool = true
+    ) {
+        self.playerAName = playerAName
+        self.playerBName = playerBName
+        self.format = format
+        self.timestamp = timestamp
+        self.initialServerIsPlayerA = initialServerIsPlayerA
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        playerAName = try container.decode(String.self, forKey: .playerAName)
+        playerBName = try container.decode(String.self, forKey: .playerBName)
+        format = try container.decode(MatchFormat.self, forKey: .format)
+        timestamp = try container.decodeIfPresent(Date.self, forKey: .timestamp) ?? Date()
+        // Older senders (or the Garmin bridge) may omit this key; default to true.
+        initialServerIsPlayerA = try container.decodeIfPresent(Bool.self, forKey: .initialServerIsPlayerA) ?? true
+    }
 }
 
 struct MatchSyncAckPayload: Codable, Hashable {
@@ -390,6 +434,57 @@ enum WatchConfigSendResult {
         if self == .sent || other == .sent { return .sent }
         if self == .queued || other == .queued { return .queued }
         return .unavailable
+    }
+}
+
+/// A single bullet shown in the "What's new" prompt. `title`/`description`
+/// are used as localization keys (see `Localizable.strings`), mirroring how
+/// `OnboardingPage` content is looked up in `PlayceIOSApp.swift`.
+struct WhatsNewEntry: Hashable {
+    let title: String
+    let description: String
+}
+
+/// Content shown in the "What's new" prompt (iOS sheet, watchOS overlay)
+/// after an update that changes user-facing behavior. Bump `currentVersion`
+/// and replace `entries` whenever a new change needs surfacing to existing
+/// users; only the entries for the current version are ever shown.
+enum WhatsNewContent {
+    static let currentVersion = 1
+
+    static let entries: [WhatsNewEntry] = [
+        WhatsNewEntry(
+            title: "New watch controls",
+            description: "Tap the score button to add a point. Hold it to undo the last point."
+        ),
+        WhatsNewEntry(
+            title: "Choose who serves first",
+            description: "Pick the starting server when setting up a match, from your phone or watch."
+        ),
+        WhatsNewEntry(
+            title: "Deciding tiebreak",
+            description: "When sets are tied, settle the match with a tiebreak instead of a final set."
+        )
+    ]
+}
+
+/// Tracks the last "What's new" version a user has seen, in
+/// `playce.whatsnew.lastSeenVersion`. iOS and watchOS each call this with
+/// their own (device-local) `UserDefaults.standard`, so the flag is
+/// independent per platform even though the code is shared.
+enum WhatsNewPrefs {
+    private static let lastSeenVersionKey = "playce.whatsnew.lastSeenVersion"
+
+    static func lastSeenVersion(defaults: UserDefaults = .standard) -> Int {
+        defaults.integer(forKey: lastSeenVersionKey)
+    }
+
+    static func shouldShow(currentVersion: Int = WhatsNewContent.currentVersion, defaults: UserDefaults = .standard) -> Bool {
+        lastSeenVersion(defaults: defaults) < currentVersion
+    }
+
+    static func markSeen(version: Int = WhatsNewContent.currentVersion, defaults: UserDefaults = .standard) {
+        defaults.set(version, forKey: lastSeenVersionKey)
     }
 }
 

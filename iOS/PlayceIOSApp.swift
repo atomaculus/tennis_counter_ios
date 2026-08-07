@@ -8,10 +8,25 @@ struct PlayceIOSApp: App {
     @StateObject private var premiumStore = PremiumStore()
     @StateObject private var connectivity = ConnectivityCoordinator.shared
     @StateObject private var garminConnectivity = GarminConnectivityCoordinator.shared
+    @State private var showOnboarding = !OnboardingPrefs.isCompleted()
 
     var body: some Scene {
         WindowGroup {
-            PhoneRootView()
+            Group {
+                if showOnboarding {
+                    OnboardingView {
+                        OnboardingPrefs.markCompleted()
+                        // A user who just finished onboarding doesn't need the
+                        // separate "what's new" prompt right after it.
+                        WhatsNewPrefs.markSeen()
+                        withAnimation {
+                            showOnboarding = false
+                        }
+                    }
+                } else {
+                    PhoneRootView()
+                }
+            }
                 .environmentObject(historyStore)
                 .environmentObject(premiumStore)
                 .environmentObject(connectivity)
@@ -31,6 +46,7 @@ struct PlayceIOSApp: App {
 
 struct PhoneRootView: View {
     @StateObject private var localCounter = ScoreboardController()
+    @State private var showWhatsNew = false
 
     var body: some View {
         TabView {
@@ -57,6 +73,174 @@ struct PhoneRootView: View {
         }
         .tint(PlaycePalette.accent)
         .preferredColorScheme(.dark)
+        .onAppear {
+            // Onboarding (which also marks "what's new" as seen, see
+            // PlayceIOSApp above) is only skipped once completed, so this
+            // check is mostly defensive: never show both prompts together.
+            if OnboardingPrefs.isCompleted() && WhatsNewPrefs.shouldShow() {
+                showWhatsNew = true
+            }
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewView {
+                WhatsNewPrefs.markSeen()
+                showWhatsNew = false
+            }
+        }
+    }
+}
+
+/// Tracks whether the user has already dismissed the first-run onboarding,
+/// mirroring the Android mobile app's `OnboardingPrefs`.
+enum OnboardingPrefs {
+    private static let completedKey = "playce.onboarding.completed"
+
+    static func isCompleted(defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: completedKey)
+    }
+
+    static func markCompleted(defaults: UserDefaults = .standard) {
+        defaults.set(true, forKey: completedKey)
+    }
+}
+
+private struct OnboardingPage {
+    let emoji: String
+    let title: String
+    let description: String
+}
+
+private let onboardingPages: [OnboardingPage] = [
+    OnboardingPage(
+        emoji: "🎾",
+        title: "Score your matches",
+        description: "Tap to add points with full tennis scoring: deuce, advantage, tiebreaks, and configurable formats."
+    ),
+    OnboardingPage(
+        emoji: "⌚",
+        title: "Play from your watch",
+        description: "Use your Apple Watch as a courtside scorer. Your iPhone syncs automatically."
+    ),
+    OnboardingPage(
+        emoji: "📊",
+        title: "Track your history",
+        description: "Every match is saved. Review your stats, share results, and see your progress over time."
+    )
+]
+
+/// First-run, 3-page onboarding shown before `PhoneRootView` until the user
+/// finishes or skips it (see `OnboardingPrefs`).
+struct OnboardingView: View {
+    let onFinish: () -> Void
+
+    @State private var currentPage = 0
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer().frame(height: 48)
+
+            WordmarkView(font: .system(size: 28, weight: .black, design: .rounded), width: 156)
+
+            TabView(selection: $currentPage) {
+                ForEach(Array(onboardingPages.enumerated()), id: \.offset) { index, page in
+                    OnboardingPageContent(page: page)
+                        .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
+            .indexViewStyle(.page(backgroundDisplayMode: .always))
+
+            VStack(spacing: 8) {
+                if currentPage < onboardingPages.count - 1 {
+                    PlayceButton("Next", style: .solid) {
+                        withAnimation { currentPage += 1 }
+                    }
+                    PlayceButton("Skip", style: .outline, action: onFinish)
+                } else {
+                    PlayceButton("Get Started", style: .solid, action: onFinish)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
+        }
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+
+/// Sheet shown once after an update that changes user-facing behavior (see
+/// `WhatsNewPrefs`/`WhatsNewContent`), so existing users (who never see
+/// `OnboardingView`) still find out about the change.
+struct WhatsNewView: View {
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("What's new")
+                        .font(PlayceType.headline)
+                        .foregroundStyle(PlaycePalette.textPrimary)
+                        .padding(.top, 32)
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(Array(WhatsNewContent.entries.enumerated()), id: \.offset) { _, entry in
+                            WhatsNewRow(entry: entry)
+                        }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+
+            PlayceButton("Got it", style: .solid, action: onDismiss)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+        }
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct WhatsNewRow: View {
+    let entry: WhatsNewEntry
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle()
+                .fill(PlaycePalette.accent)
+                .frame(width: 8, height: 8)
+                .padding(.top, 6)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(LocalizedStringKey(entry.title))
+                    .font(PlayceType.bodyStrong)
+                    .foregroundStyle(PlaycePalette.textPrimary)
+                Text(LocalizedStringKey(entry.description))
+                    .font(PlayceType.bodyMedium)
+                    .foregroundStyle(PlaycePalette.textSecondary)
+            }
+        }
+    }
+}
+
+private struct OnboardingPageContent: View {
+    let page: OnboardingPage
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text(page.emoji)
+                .font(.system(size: 64))
+            Text(LocalizedStringKey(page.title))
+                .font(PlayceType.headline)
+                .foregroundStyle(PlaycePalette.textPrimary)
+                .multilineTextAlignment(.center)
+            Text(LocalizedStringKey(page.description))
+                .font(PlayceType.body)
+                .foregroundStyle(PlaycePalette.textSecondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 16)
     }
 }
 
@@ -96,6 +280,8 @@ struct CounterTabView: View {
     @EnvironmentObject private var historyStore: MatchHistoryStore
     @EnvironmentObject private var premiumStore: PremiumStore
 
+    @State private var decidingTiebreakDeclined = false
+
     var body: some View {
         Group {
             if let live = connectivity.liveMatch, live.isMatchActive {
@@ -108,7 +294,10 @@ struct CounterTabView: View {
                     onSave: {
                         historyStore.upsert(controller.finishMatchRecord(source: "iPhone"))
                     },
-                    onNewMatch: controller.resetMatch
+                    onNewMatch: {
+                        controller.resetMatch()
+                        decidingTiebreakDeclined = false
+                    }
                 )
                 .navigationTitle("Result")
             } else {
@@ -121,22 +310,26 @@ struct CounterTabView: View {
                         )
                         GarminConnectionCard()
                         MatchSetupCard(
-                            onApplyConfig: { nameA, nameB, preset in
+                            onApplyConfig: { nameA, nameB, preset, initialServerIsPlayerA in
                                 controller.setPlayerNames(nameA, nameB)
                                 controller.setMatchFormat(preset.format)
+                                controller.setInitialServer(isPlayerA: initialServerIsPlayerA)
                             },
-                            onSendToWatch: { nameA, nameB, preset in
+                            onSendToWatch: { nameA, nameB, preset, initialServerIsPlayerA in
                                 controller.setPlayerNames(nameA, nameB)
                                 controller.setMatchFormat(preset.format)
+                                controller.setInitialServer(isPlayerA: initialServerIsPlayerA)
                                 return connectivity.sendMatchConfig(
                                     playerAName: controller.playerAName,
                                     playerBName: controller.playerBName,
-                                    format: preset.format
+                                    format: preset.format,
+                                    initialServerIsPlayerA: initialServerIsPlayerA
                                 )
                                 .merged(with: garminConnectivity.sendMatchConfig(
                                     playerAName: controller.playerAName,
                                     playerBName: controller.playerBName,
-                                    format: preset.format
+                                    format: preset.format,
+                                    initialServerIsPlayerA: initialServerIsPlayerA
                                 ))
                             }
                         )
@@ -157,7 +350,10 @@ struct CounterTabView: View {
                         )
                         HStack(spacing: 12) {
                             PlayceButton("Reset Game", style: .outline, action: controller.resetGame)
-                            PlayceButton("New Match", style: .danger, action: controller.resetMatch)
+                            PlayceButton("New Match", style: .danger) {
+                                controller.resetMatch()
+                                decidingTiebreakDeclined = false
+                            }
                         }
                         if controller.state.hasTimerStarted {
                             PlayceButton("End Match", style: .solid, action: controller.finishMatch)
@@ -170,6 +366,27 @@ struct CounterTabView: View {
             }
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+        .onChange(of: controller.state.setDetailLine) { _, _ in
+            decidingTiebreakDeclined = false
+        }
+        .alert("Sets tied", isPresented: decidingTiebreakAlertBinding) {
+            Button("Tiebreak to 7") { controller.startDecidingTiebreak(targetPoints: 7) }
+            Button("Super tiebreak to 10") { controller.startDecidingTiebreak(targetPoints: 10) }
+            Button("Continue normal set", role: .cancel) { decidingTiebreakDeclined = true }
+        } message: {
+            Text("Decide the match by tiebreak?")
+        }
+    }
+
+    /// Shows the deciding-tiebreak offer only while it is actually offerable
+    /// and the user has not dismissed it for the current score.
+    private var decidingTiebreakAlertBinding: Binding<Bool> {
+        Binding(
+            get: { controller.canOfferDecidingTiebreak && !decidingTiebreakDeclined },
+            set: { isPresented in
+                if !isPresented { decidingTiebreakDeclined = true }
+            }
+        )
     }
 }
 
@@ -328,39 +545,47 @@ struct PremiumStatusMessageView: View {
 }
 
 struct MatchSetupCard: View {
-    let onApplyConfig: (String, String, FormatPreset) -> Void
-    let onSendToWatch: (String, String, FormatPreset) -> WatchConfigSendResult
+    let onApplyConfig: (String, String, FormatPreset, Bool) -> Void
+    let onSendToWatch: (String, String, FormatPreset, Bool) -> WatchConfigSendResult
 
     @State private var isExpanded = false
     @State private var playerAName = ""
     @State private var playerBName = ""
     @State private var selectedPreset: FormatPreset = .standard
+    @State private var serveChoice: ServeFirstChoice = .playerA
     @State private var watchSendState = WatchSendState.idle
     @State private var appliedLocally = false
+    @State private var serveResultText: String?
 
     var body: some View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 12) {
-                Button {
+                // Not a Button: plain-style button taps in this ScrollView were
+                // dropped on device (2026-07 QA NO-GO — the tap landed but the action
+                // never ran). A tap gesture over an explicit content shape bypasses
+                // button touch handling entirely.
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("MATCH SETUP")
+                            .font(PlayceType.label)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                        Text(isExpanded ? "Names, format and watch sync" : "Player names and match format")
+                            .font(PlayceType.body)
+                            .foregroundStyle(PlaycePalette.textPrimary)
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundStyle(PlaycePalette.textSecondary)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("MATCH SETUP")
-                                .font(PlayceType.label)
-                                .foregroundStyle(PlaycePalette.textSecondary)
-                            Text(isExpanded ? "Names, format and watch sync" : "Player names and match format")
-                                .font(PlayceType.body)
-                                .foregroundStyle(PlaycePalette.textPrimary)
-                        }
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundStyle(PlaycePalette.textSecondary)
-                    }
                 }
-                .buttonStyle(.plain)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("matchSetupHeader")
 
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 12) {
@@ -390,9 +615,45 @@ struct MatchSetupCard: View {
                             }
                         }
 
+                        Text("Who serves first?")
+                            .font(PlayceType.label)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                        HStack(spacing: 8) {
+                            ServeChip(
+                                title: playerAName.isEmpty ? "Player A" : playerAName,
+                                isSelected: serveChoice == .playerA,
+                                action: {
+                                    serveChoice = .playerA
+                                    resetConfigFeedback()
+                                }
+                            )
+                            ServeChip(
+                                title: playerBName.isEmpty ? "Player B" : playerBName,
+                                isSelected: serveChoice == .playerB,
+                                action: {
+                                    serveChoice = .playerB
+                                    resetConfigFeedback()
+                                }
+                            )
+                            ServeChip(
+                                title: String(localized: "Coin toss"),
+                                isSelected: serveChoice == .coinToss,
+                                action: {
+                                    serveChoice = .coinToss
+                                    resetConfigFeedback()
+                                }
+                            )
+                        }
+                        if let serveResultText {
+                            Text(serveResultText)
+                                .font(PlayceType.bodyMedium)
+                                .foregroundStyle(PlaycePalette.textSecondary)
+                        }
+
                         HStack(spacing: 10) {
                             PlayceButton(appliedLocally ? "Applied" : "Apply", style: appliedLocally ? .solid : .outline) {
-                                onApplyConfig(playerAName, playerBName, selectedPreset)
+                                let initialServerIsPlayerA = resolveInitialServer()
+                                onApplyConfig(playerAName, playerBName, selectedPreset, initialServerIsPlayerA)
                                 appliedLocally = true
                                 watchSendState = .idle
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
@@ -400,7 +661,8 @@ struct MatchSetupCard: View {
                                 }
                             }
                             PlayceButton(watchSendState.title, style: watchSendState == .unavailable ? .outline : .solid) {
-                                let result = onSendToWatch(playerAName, playerBName, selectedPreset)
+                                let initialServerIsPlayerA = resolveInitialServer()
+                                let result = onSendToWatch(playerAName, playerBName, selectedPreset, initialServerIsPlayerA)
                                 watchSendState = WatchSendState(result)
                                 if watchSendState == .unavailable {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
@@ -416,9 +678,35 @@ struct MatchSetupCard: View {
         }
     }
 
+    /// Resolves the current serve choice to a concrete Bool, flipping a coin
+    /// when needed and surfacing the result under the chips.
+    private func resolveInitialServer() -> Bool {
+        let resolvedIsPlayerA: Bool
+        switch serveChoice {
+        case .playerA:
+            resolvedIsPlayerA = true
+        case .playerB:
+            resolvedIsPlayerA = false
+        case .coinToss:
+            resolvedIsPlayerA = Bool.random()
+        }
+        let serverName = resolvedIsPlayerA
+            ? (playerAName.isEmpty ? "Player A" : playerAName)
+            : (playerBName.isEmpty ? "Player B" : playerBName)
+        serveResultText = "\(serverName) serves first"
+        return resolvedIsPlayerA
+    }
+
     private func resetConfigFeedback() {
         appliedLocally = false
         watchSendState = .idle
+        serveResultText = nil
+    }
+
+    private enum ServeFirstChoice: Equatable {
+        case playerA
+        case playerB
+        case coinToss
     }
 
     private enum WatchSendState: Equatable {
@@ -502,6 +790,30 @@ struct FormatChip: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(isSelected ? PlaycePalette.accent : PlaycePalette.border, lineWidth: 1)
             )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct ServeChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(PlayceType.labelSmallStrong)
+                .foregroundStyle(isSelected ? PlaycePalette.accent : PlaycePalette.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .padding(.horizontal, 6)
+                .background(isSelected ? PlaycePalette.accentMuted : PlaycePalette.background, in: RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isSelected ? PlaycePalette.accent : PlaycePalette.border, lineWidth: 1)
+                )
         }
         .buttonStyle(.plain)
     }
@@ -1062,6 +1374,25 @@ struct MatchDetailView: View {
                     }
                 }
 
+                if record.caloriesKcal != nil || record.avgHeartRateBpm != nil || record.maxHeartRateBpm != nil {
+                    PlayceCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Activity")
+                                .font(PlayceType.title)
+                                .foregroundStyle(PlaycePalette.textPrimary)
+                            if let calories = record.caloriesKcal {
+                                HealthMetricRow(label: "Calories", value: "\(Int(calories.rounded())) kcal")
+                            }
+                            if let avgHeartRate = record.avgHeartRateBpm {
+                                HealthMetricRow(label: "Avg HR", value: "\(Int(avgHeartRate.rounded())) bpm")
+                            }
+                            if let maxHeartRate = record.maxHeartRateBpm {
+                                HealthMetricRow(label: "Max HR", value: "\(Int(maxHeartRate.rounded())) bpm")
+                            }
+                        }
+                    }
+                }
+
                 PlayceCard {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Metadata")
@@ -1141,7 +1472,9 @@ struct MatchDetailView: View {
             ShareCardEditorView(
                 data: MatchShareCardData(record: record),
                 photoURL: historyStore.photoURL(for: record),
-                matchID: record.id
+                matchID: record.id,
+                initialPlayerAName: record.playerAName,
+                initialPlayerBName: record.playerBName
             )
         }
         .task(id: pickedPhoto) {
@@ -1595,11 +1928,29 @@ struct ShareCardEditorView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var layout = ShareCardLayout()
+    @State private var layout: ShareCardLayout
     @State private var shareURL: ShareURLItem?
     @State private var errorText: String?
     @State private var offsetAtDragStart: CGSize?
     @State private var blockSize: CGSize = .zero
+
+    /// Names are prefilled from the saved match record when available, so the
+    /// user does not have to retype them just to share a card.
+    init(
+        data: MatchShareCardData,
+        photoURL: URL?,
+        matchID: UUID,
+        initialPlayerAName: String? = nil,
+        initialPlayerBName: String? = nil
+    ) {
+        self.data = data
+        self.photoURL = photoURL
+        self.matchID = matchID
+        var initialLayout = ShareCardLayout()
+        initialLayout.playerAName = initialPlayerAName ?? ""
+        initialLayout.playerBName = initialPlayerBName ?? ""
+        _layout = State(initialValue: initialLayout)
+    }
 
     var body: some View {
         NavigationStack {
@@ -1769,6 +2120,22 @@ struct ShareCardEditorView: View {
         } catch {
             errorText = "Failed to render share card."
         }
+    }
+}
+
+struct HealthMetricRow: View {
+    let label: LocalizedStringKey
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .foregroundStyle(PlaycePalette.textSecondary)
+            Spacer()
+            Text(value)
+                .foregroundStyle(PlaycePalette.textPrimary)
+        }
+        .font(PlayceType.bodyMedium)
     }
 }
 

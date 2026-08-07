@@ -99,7 +99,12 @@ final class GarminConnectivityCoordinator: NSObject, ObservableObject {
     }
 
     @discardableResult
-    func sendMatchConfig(playerAName: String, playerBName: String, format: MatchFormat) -> WatchConfigSendResult {
+    func sendMatchConfig(
+        playerAName: String,
+        playerBName: String,
+        format: MatchFormat,
+        initialServerIsPlayerA: Bool = true
+    ) -> WatchConfigSendResult {
         guard !appsByDeviceID.isEmpty else {
             statusMessage = selectedDevices.isEmpty ? "Select Garmin device" : "Garmin app unavailable"
             return .unavailable
@@ -114,6 +119,7 @@ final class GarminConnectivityCoordinator: NSObject, ObservableObject {
             "tiebreakPoints": NSNumber(value: format.tiebreakPoints),
             "superTiebreakInFinalSet": NSNumber(value: format.superTiebreakInFinalSet),
             "noAdScoring": NSNumber(value: format.noAdScoring),
+            "initialServerIsPlayerA": NSNumber(value: initialServerIsPlayerA),
             Keys.timestamp: NSNumber(value: timestamp)
         ]
         let envelope: NSDictionary = [
