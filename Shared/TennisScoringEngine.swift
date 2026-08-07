@@ -357,6 +357,9 @@ final class ScoreboardController: ObservableObject {
             detail = "Games: \(current.playerA.games)-\(current.playerB.games)"
         } else if completed.isEmpty {
             detail = "G \(current.playerA.games)-\(current.playerB.games)"
+        } else if current.isMatchOver {
+            // Match decided on the last completed set: the residual 0-0 game adds nothing.
+            detail = completed
         } else {
             detail = "\(completed) | G \(current.playerA.games)-\(current.playerB.games)"
         }

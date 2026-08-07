@@ -71,6 +71,8 @@
 "Reset Game" = "Reiniciar game";
 "End Match" = "Terminar partido";
 "New Match" = "Nuevo partido";
+"Actions" = "Acciones";
+"Match actions" = "Acciones del partido";
 "Save Match" = "Guardar partido";
 "Saved" = "Guardado";
 "MATCH FINISHED" = "PARTIDO FINALIZADO";

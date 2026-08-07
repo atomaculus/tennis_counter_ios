@@ -44,6 +44,9 @@ struct WatchRootView: View {
     /// started scoring before answering (the prompt is ignorable).
     @State private var serveQuestionAnswered = false
     @State private var decidingTiebreakDeclined = false
+    /// D9: match actions (Finish / Reset Game / New Match) live in one menu,
+    /// mirroring the Wear OS and Garmin admin sheets.
+    @State private var showActionsMenu = false
 
     /// True on first appearance after an update that changed on-watch
     /// behavior (see `WhatsNewPrefs`); dismissing marks it seen so it is not
@@ -86,6 +89,26 @@ struct WatchRootView: View {
             WhatsNewWatchView {
                 WhatsNewPrefs.markSeen()
                 showWhatsNew = false
+            }
+        }
+        // D9 action menu: Cancel is added automatically by watchOS.
+        .confirmationDialog("Match actions", isPresented: $showActionsMenu, titleVisibility: .visible) {
+            Button("Finish Match") {
+                Task { await finishMatch() }
+            }
+            Button("Reset Game") {
+                controller.resetGame()
+                connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
+            }
+            Button("New Match", role: .destructive) {
+                controller.resetMatch()
+                finishedRecord = nil
+                savedFinishedRecord = false
+                serveFixedByPhone = false
+                serveQuestionAnswered = false
+                decidingTiebreakDeclined = false
+                connectivity.clearLiveMatch()
+                workoutManager.startMatchWorkoutIfPossible()
             }
         }
     }
@@ -138,29 +161,13 @@ struct WatchRootView: View {
             }
 
             HStack(spacing: 8) {
-                smallButton("Reset Game") {
-                    controller.resetGame()
-                    connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
-                }
                 smallButton("Timer") {
                     controller.toggleTimer()
                     connectivity.broadcastLive(snapshot: controller.state, lastScoredPlayer: nil)
                 }
-            }
-
-            smallButton("Finish Match", accent: true) {
-                Task { await finishMatch() }
-            }
-
-            smallButton("New Match", danger: true) {
-                controller.resetMatch()
-                finishedRecord = nil
-                savedFinishedRecord = false
-                serveFixedByPhone = false
-                serveQuestionAnswered = false
-                decidingTiebreakDeclined = false
-                connectivity.clearLiveMatch()
-                workoutManager.startMatchWorkoutIfPossible()
+                smallButton("Actions") {
+                    showActionsMenu = true
+                }
             }
 
             if let transientMessage {
