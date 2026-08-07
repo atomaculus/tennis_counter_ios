@@ -328,10 +328,10 @@ final class ScoringEngineTests: XCTestCase {
 
     func testReplayEventsRebuildsDecidingTiebreakState() {
         var events: [ScoringEngine.MatchEvent] = []
-        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }  // A wins set 6-0
-        for _ in 0..<24 { events.append(.point(isPlayerA: false)) } // B wins set 6-0
-        events.append(.decidingTiebreakStarted(targetPoints: 10))
-        for _ in 0..<3 { events.append(.point(isPlayerA: true)) }
+        for _ in 0..<24 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }  // A wins set 6-0
+        for _ in 0..<24 { events.append(.point(isPlayerA: false, timestampMillis: 0)) } // B wins set 6-0
+        events.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
+        for _ in 0..<3 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }
 
         let score = ScoringEngine.replayEvents(events)
         XCTAssertTrue(score.isTiebreak)
@@ -342,14 +342,53 @@ final class ScoringEngineTests: XCTestCase {
 
     func testDroppingLastEventUndoesTheDecidingTiebreakChoice() {
         var events: [ScoringEngine.MatchEvent] = []
-        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }
-        for _ in 0..<24 { events.append(.point(isPlayerA: false)) }
-        events.append(.decidingTiebreakStarted(targetPoints: 10))
+        for _ in 0..<24 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }
+        for _ in 0..<24 { events.append(.point(isPlayerA: false, timestampMillis: 0)) }
+        events.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
 
         let undone = ScoringEngine.replayEvents(Array(events.dropLast()))
         XCTAssertFalse(undone.isTiebreak)
         XCTAssertNil(undone.decidingTiebreakTarget)
         XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(undone)) // question re-arms
+    }
+
+    func testReplayEventsIgnoresTimestampsWhenComputingScore() {
+        var eventsWithRealTimestamps: [ScoringEngine.MatchEvent] = []
+        var eventsWithZeroTimestamps: [ScoringEngine.MatchEvent] = []
+        var millis: Int64 = 1_700_000_000_000
+        for isPlayerA in [true, true, true, true, false, false, false] {
+            eventsWithRealTimestamps.append(.point(isPlayerA: isPlayerA, timestampMillis: millis))
+            eventsWithZeroTimestamps.append(.point(isPlayerA: isPlayerA, timestampMillis: 0))
+            millis += 1_000
+        }
+        eventsWithRealTimestamps.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: millis))
+        eventsWithZeroTimestamps.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
+
+        let scoreWithRealTimestamps = ScoringEngine.replayEvents(eventsWithRealTimestamps)
+        let scoreWithZeroTimestamps = ScoringEngine.replayEvents(eventsWithZeroTimestamps)
+        XCTAssertEqual(scoreWithRealTimestamps, scoreWithZeroTimestamps)
+    }
+
+    // ---- Event -> PointEventRecord mapping ----
+
+    func testPointEventRecordMappingForPointEvent() {
+        let events: [ScoringEngine.MatchEvent] = [.point(isPlayerA: true, timestampMillis: 1_234)]
+        let records = PointEventRecord.from(events)
+        XCTAssertEqual(records.count, 1)
+        XCTAssertEqual(records[0].type, PointEventRecord.pointType)
+        XCTAssertEqual(records[0].isPlayerA, true)
+        XCTAssertNil(records[0].targetPoints)
+        XCTAssertEqual(records[0].t, 1_234)
+    }
+
+    func testPointEventRecordMappingForDecidingTiebreakEvent() {
+        let events: [ScoringEngine.MatchEvent] = [.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 5_678)]
+        let records = PointEventRecord.from(events)
+        XCTAssertEqual(records.count, 1)
+        XCTAssertEqual(records[0].type, PointEventRecord.decidingTiebreakType)
+        XCTAssertNil(records[0].isPlayerA)
+        XCTAssertEqual(records[0].targetPoints, 10)
+        XCTAssertEqual(records[0].t, 5_678)
     }
 
     private func scoreToTiedSets(setsEach: Int, format: MatchFormat = .standard) -> MatchSnapshot {

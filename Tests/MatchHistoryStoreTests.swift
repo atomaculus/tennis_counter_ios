@@ -84,6 +84,38 @@ final class MatchHistoryStoreTests: XCTestCase {
         )
     }
 
+    // ---- pointEvents (de)serialization ----
+
+    func testFinishedMatchRecordWithoutPointEventsKeyDecodesAsNil() throws {
+        // A record encoded before pointEvents existed (or synced from a peer that
+        // predates it) has no "pointEvents" key in its JSON at all. The synthesized
+        // Codable's encodeIfPresent already omits the key for a nil optional, so
+        // encoding `makeRecord(...)` (pointEvents defaults to nil) reproduces that
+        // legacy shape directly.
+        let record = makeRecord(idempotencyKey: "no-point-events", score: "6-3")
+        let data = try JSONEncoder().encode(record)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        XCTAssertNil(json["pointEvents"], "expected legacy JSON shape with no pointEvents key")
+
+        let decoded = try JSONDecoder().decode(FinishedMatchRecord.self, from: data)
+        XCTAssertNil(decoded.pointEvents)
+        XCTAssertEqual(decoded.idempotencyKey, "no-point-events")
+    }
+
+    func testFinishedMatchRecordWithPointEventsRoundTrips() throws {
+        var record = makeRecord(idempotencyKey: "with-point-events", score: "6-3")
+        record.pointEvents = [
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 1_000),
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: false, targetPoints: nil, t: 2_000),
+            PointEventRecord(type: PointEventRecord.decidingTiebreakType, isPlayerA: nil, targetPoints: 10, t: 3_000)
+        ]
+
+        let data = try JSONEncoder().encode(record)
+        let decoded = try JSONDecoder().decode(FinishedMatchRecord.self, from: data)
+
+        XCTAssertEqual(decoded.pointEvents, record.pointEvents)
+    }
+
     private func temporaryStorageURL() -> URL {
         FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)

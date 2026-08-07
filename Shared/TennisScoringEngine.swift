@@ -58,8 +58,8 @@ enum ScoringEngine {
     /// A scorable match event. Match history must be kept as events (not bare
     /// points) so that undo can also rewind a deciding-tiebreak choice.
     enum MatchEvent: Hashable {
-        case point(isPlayerA: Bool)
-        case decidingTiebreakStarted(targetPoints: Int)
+        case point(isPlayerA: Bool, timestampMillis: Int64)
+        case decidingTiebreakStarted(targetPoints: Int, timestampMillis: Int64)
     }
 
     /// Replay a list of match events from a blank score to rebuild match state.
@@ -71,9 +71,9 @@ enum ScoringEngine {
         var score = MatchSnapshot(format: format, initialServerIsPlayerA: initialServerIsPlayerA)
         for event in events {
             switch event {
-            case .point(let isPlayerA):
+            case .point(let isPlayerA, _):
                 score = scorePoint(score, isPlayerA: isPlayerA)
-            case .decidingTiebreakStarted(let targetPoints):
+            case .decidingTiebreakStarted(let targetPoints, _):
                 score = startDecidingTiebreak(score, targetPoints: targetPoints)
             }
         }
@@ -257,7 +257,8 @@ final class ScoreboardController: ObservableObject {
 
     func addPoint(to side: PlayerSide) {
         guard !state.isMatchOver else { return }
-        pointHistory.append(.point(isPlayerA: side == .a))
+        let timestampMillis = Int64(Date().timeIntervalSince1970 * 1000)
+        pointHistory.append(.point(isPlayerA: side == .a, timestampMillis: timestampMillis))
         state = ScoringEngine.scorePoint(state, isPlayerA: side == .a)
         if state.isMatchOver {
             finishMatch()
@@ -268,7 +269,7 @@ final class ScoreboardController: ObservableObject {
     func undoLastPoint(for side: PlayerSide) -> Bool {
         let isPlayerA = side == .a
         guard let index = pointHistory.lastIndex(where: { event in
-            if case .point(let eventIsPlayerA) = event { return eventIsPlayerA == isPlayerA }
+            if case .point(let eventIsPlayerA, _) = event { return eventIsPlayerA == isPlayerA }
             return false
         }) else {
             return false
@@ -282,7 +283,8 @@ final class ScoreboardController: ObservableObject {
     /// `ScoringEngine.canOfferDecidingTiebreak`). No-op if not currently offerable.
     func startDecidingTiebreak(targetPoints: Int) {
         guard ScoringEngine.canOfferDecidingTiebreak(state) else { return }
-        pointHistory.append(.decidingTiebreakStarted(targetPoints: targetPoints))
+        let timestampMillis = Int64(Date().timeIntervalSince1970 * 1000)
+        pointHistory.append(.decidingTiebreakStarted(targetPoints: targetPoints, timestampMillis: timestampMillis))
         state = ScoringEngine.startDecidingTiebreak(state, targetPoints: targetPoints)
     }
 
@@ -402,7 +404,8 @@ final class ScoreboardController: ObservableObject {
             playerBName: playerBName,
             caloriesKcal: caloriesKcal,
             avgHeartRateBpm: avgHeartRateBpm,
-            maxHeartRateBpm: maxHeartRateBpm
+            maxHeartRateBpm: maxHeartRateBpm,
+            pointEvents: PointEventRecord.from(pointHistory)
         )
     }
 
@@ -430,9 +433,9 @@ final class ScoreboardController: ObservableObject {
         rebuilt.hasTimerStarted = state.hasTimerStarted
         state = pointHistory.reduce(rebuilt) { score, event in
             switch event {
-            case .point(let isPlayerA):
+            case .point(let isPlayerA, _):
                 return ScoringEngine.scorePoint(score, isPlayerA: isPlayerA)
-            case .decidingTiebreakStarted(let targetPoints):
+            case .decidingTiebreakStarted(let targetPoints, _):
                 return ScoringEngine.startDecidingTiebreak(score, targetPoints: targetPoints)
             }
         }

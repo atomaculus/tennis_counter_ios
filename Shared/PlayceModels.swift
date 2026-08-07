@@ -135,6 +135,31 @@ struct MobileFinishedSummary: Hashable {
     var playerBName: String
 }
 
+/// A single scored point or deciding-tiebreak-start event, as persisted with a
+/// finished match. Mirrors `ScoringEngine.MatchEvent` but flattened for Codable
+/// storage (Swift does not allow default values on enum associated values).
+struct PointEventRecord: Codable, Hashable {
+    let type: String        // "point" | "deciding_tb"
+    let isPlayerA: Bool?    // only for type == "point"
+    let targetPoints: Int?  // only for type == "deciding_tb"
+    let t: Int64            // epoch millis; 0 = unknown
+
+    static let pointType = "point"
+    static let decidingTiebreakType = "deciding_tb"
+
+    /// Maps engine-level match events to their persisted representation.
+    static func from(_ events: [ScoringEngine.MatchEvent]) -> [PointEventRecord] {
+        events.map { event in
+            switch event {
+            case .point(let isPlayerA, let timestampMillis):
+                return PointEventRecord(type: pointType, isPlayerA: isPlayerA, targetPoints: nil, t: timestampMillis)
+            case .decidingTiebreakStarted(let targetPoints, let timestampMillis):
+                return PointEventRecord(type: decidingTiebreakType, isPlayerA: nil, targetPoints: targetPoints, t: timestampMillis)
+            }
+        }
+    }
+}
+
 struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var id: UUID = UUID()
     var createdAt: Date
@@ -152,6 +177,9 @@ struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var caloriesKcal: Double? = nil
     var avgHeartRateBpm: Double? = nil
     var maxHeartRateBpm: Double? = nil
+    // Full per-point history, added in N1. Records saved before this field
+    // existed (or synced from a peer that predates it) decode this as nil.
+    var pointEvents: [PointEventRecord]? = nil
 }
 
 struct MatchHistoryArchive: Codable, Hashable {
