@@ -73,6 +73,12 @@
 "New Match" = "Nuevo partido";
 "Actions" = "Acciones";
 "Match actions" = "Acciones del partido";
+"SETS" = "SETS";
+"GAMES" = "GAMES";
+"SRV" = "SAQUE";
+"SIDE" = "LADO";
+"Left" = "Izquierda";
+"Right" = "Derecha";
 "Save Match" = "Guardar partido";
 "Saved" = "Guardado";
 "MATCH FINISHED" = "PARTIDO FINALIZADO";

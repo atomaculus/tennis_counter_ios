@@ -560,26 +560,31 @@ struct MatchSetupCard: View {
     var body: some View {
         PlayceCard {
             VStack(alignment: .leading, spacing: 12) {
-                Button {
+                // Not a Button: plain-style button taps in this ScrollView were
+                // dropped on device (2026-07 QA NO-GO — the tap landed but the action
+                // never ran). A tap gesture over an explicit content shape bypasses
+                // button touch handling entirely.
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("MATCH SETUP")
+                            .font(PlayceType.label)
+                            .foregroundStyle(PlaycePalette.textSecondary)
+                        Text(isExpanded ? "Names, format and watch sync" : "Player names and match format")
+                            .font(PlayceType.body)
+                            .foregroundStyle(PlaycePalette.textPrimary)
+                    }
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundStyle(PlaycePalette.textSecondary)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         isExpanded.toggle()
                     }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("MATCH SETUP")
-                                .font(PlayceType.label)
-                                .foregroundStyle(PlaycePalette.textSecondary)
-                            Text(isExpanded ? "Names, format and watch sync" : "Player names and match format")
-                                .font(PlayceType.body)
-                                .foregroundStyle(PlaycePalette.textPrimary)
-                        }
-                        Spacer()
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundStyle(PlaycePalette.textSecondary)
-                    }
                 }
-                .buttonStyle(.plain)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("matchSetupHeader")
 
                 if isExpanded {
                     VStack(alignment: .leading, spacing: 12) {

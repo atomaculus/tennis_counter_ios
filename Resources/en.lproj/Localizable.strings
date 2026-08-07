@@ -73,6 +73,12 @@
 "New Match" = "New Match";
 "Actions" = "Actions";
 "Match actions" = "Match actions";
+"SETS" = "SETS";
+"GAMES" = "GAMES";
+"SRV" = "SRV";
+"SIDE" = "SIDE";
+"Left" = "Left";
+"Right" = "Right";
 "Save Match" = "Save Match";
 "Saved" = "Saved";
 "MATCH FINISHED" = "MATCH FINISHED";
