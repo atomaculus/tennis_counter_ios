@@ -583,6 +583,7 @@ struct MatchSetupCard: View {
                         isExpanded.toggle()
                     }
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("matchSetupHeader")
 

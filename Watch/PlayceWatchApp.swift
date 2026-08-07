@@ -199,7 +199,7 @@ struct WatchRootView: View {
                 }
             }
 
-            smallButton(savedFinishedRecord ? "Saved" : "Save Match", accent: !savedFinishedRecord) {
+            smallButton(LocalizedStringKey(savedFinishedRecord ? "Saved" : "Save Match"), accent: !savedFinishedRecord) {
                 guard !savedFinishedRecord else { return }
                 historyStore.upsert(record)
                 connectivity.queueFinishedMatch(record)
@@ -320,13 +320,13 @@ struct WatchRootView: View {
     private var serveStatus: some View {
         HStack(spacing: 6) {
             compactPill(
-                controller.state.isTiebreak ? "TB" : "SRV",
+                LocalizedStringKey(controller.state.isTiebreak ? "TB" : "SRV"),
                 controller.state.currentServerIsPlayerA ? controller.playerAName : controller.playerBName,
                 accented: controller.state.isTiebreak
             )
             compactPill(
                 "SIDE",
-                controller.state.serveStartsOnLeftSide ? "Left" : "Right",
+                String(localized: controller.state.serveStartsOnLeftSide ? "Left" : "Right"),
                 accented: false
             )
         }
@@ -359,9 +359,18 @@ struct WatchRootView: View {
         return String(localized: "WATCH READY")
     }
 
-    private func compactStat(_ title: String, _ value: String) -> some View {
+    private func compactStat(_ title: LocalizedStringKey, _ value: String) -> some View {
+        compactStatLabel(Text(title), value: value)
+    }
+
+    @_disfavoredOverload
+    private func compactStat<S: StringProtocol>(_ title: S, _ value: String) -> some View {
+        compactStatLabel(Text(verbatim: String(title)), value: value)
+    }
+
+    private func compactStatLabel(_ title: Text, value: String) -> some View {
         VStack(spacing: 2) {
-            Text(title)
+            title
                 .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(.gray)
             Text(value)
@@ -373,9 +382,18 @@ struct WatchRootView: View {
         .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func compactPill(_ title: String, _ value: String, accented: Bool) -> some View {
+    private func compactPill(_ title: LocalizedStringKey, _ value: String, accented: Bool) -> some View {
+        compactPillLabel(Text(title), value: value, accented: accented)
+    }
+
+    @_disfavoredOverload
+    private func compactPill<S: StringProtocol>(_ title: S, _ value: String, accented: Bool) -> some View {
+        compactPillLabel(Text(verbatim: String(title)), value: value, accented: accented)
+    }
+
+    private func compactPillLabel(_ title: Text, value: String, accented: Bool) -> some View {
         VStack(spacing: 1) {
-            Text(title)
+            title
                 .font(.system(size: 8, weight: .black))
                 .foregroundStyle(.gray)
             Text(value)
@@ -400,9 +418,18 @@ struct WatchRootView: View {
             .background(Color(red: 0.10, green: 0.10, blue: 0.10), in: Capsule())
     }
 
-    private func smallButton(_ title: String, accent: Bool = false, danger: Bool = false, action: @escaping () -> Void) -> some View {
+    private func smallButton(_ title: LocalizedStringKey, accent: Bool = false, danger: Bool = false, action: @escaping () -> Void) -> some View {
+        smallButtonLabel(Text(title), accent: accent, danger: danger, action: action)
+    }
+
+    @_disfavoredOverload
+    private func smallButton<S: StringProtocol>(_ title: S, accent: Bool = false, danger: Bool = false, action: @escaping () -> Void) -> some View {
+        smallButtonLabel(Text(verbatim: String(title)), accent: accent, danger: danger, action: action)
+    }
+
+    private func smallButtonLabel(_ title: Text, accent: Bool, danger: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
+            title
                 .font(.system(size: 12, weight: .bold))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
