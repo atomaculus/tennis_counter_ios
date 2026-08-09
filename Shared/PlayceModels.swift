@@ -158,6 +158,27 @@ struct PointEventRecord: Codable, Hashable {
             }
         }
     }
+
+    /// Inverse of `from(_:)`: rebuilds engine-level match events from their
+    /// persisted representation, e.g. to feed `ScoringEngine.replayEvents`.
+    /// Records with an unrecognized `type`, or missing the field their type
+    /// requires (`isPlayerA` for `.point`, `targetPoints` for `.decidingTb`),
+    /// are skipped rather than crashing, so a record written by a future app
+    /// version with an unknown event kind is silently ignored today.
+    static func toMatchEvents(_ records: [PointEventRecord]) -> [ScoringEngine.MatchEvent] {
+        records.compactMap { record -> ScoringEngine.MatchEvent? in
+            switch record.type {
+            case pointType:
+                guard let isPlayerA = record.isPlayerA else { return nil }
+                return .point(isPlayerA: isPlayerA, timestampMillis: record.t)
+            case decidingTiebreakType:
+                guard let targetPoints = record.targetPoints else { return nil }
+                return .decidingTiebreakStarted(targetPoints: targetPoints, timestampMillis: record.t)
+            default:
+                return nil
+            }
+        }
+    }
 }
 
 struct FinishedMatchRecord: Codable, Hashable, Identifiable {

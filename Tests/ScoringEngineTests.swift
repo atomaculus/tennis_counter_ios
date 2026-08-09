@@ -391,6 +391,96 @@ final class ScoringEngineTests: XCTestCase {
         XCTAssertEqual(records[0].t, 5_678)
     }
 
+    func testPointEventRecordRoundTripsEventsThroughRecordsAndBack() {
+        let events: [ScoringEngine.MatchEvent] = [
+            .point(isPlayerA: true, timestampMillis: 1_000),
+            .point(isPlayerA: false, timestampMillis: 2_000),
+            .decidingTiebreakStarted(targetPoints: 10, timestampMillis: 3_000),
+            .point(isPlayerA: true, timestampMillis: 4_000)
+        ]
+
+        let records = PointEventRecord.from(events)
+        let rebuilt = PointEventRecord.toMatchEvents(records)
+
+        XCTAssertEqual(rebuilt, events)
+    }
+
+    func testPointEventRecordToMatchEventsIgnoresUnknownTypeInsteadOfCrashing() {
+        let records = [
+            PointEventRecord(type: "future_event_kind", isPlayerA: nil, targetPoints: nil, t: 1),
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 2)
+        ]
+
+        let events = PointEventRecord.toMatchEvents(records)
+
+        XCTAssertEqual(events, [.point(isPlayerA: true, timestampMillis: 2)])
+    }
+
+    func testPointEventRecordToMatchEventsIgnoresMalformedRecords() {
+        let records = [
+            // "point" record missing isPlayerA (would never come from `from(_:)`,
+            // but could arrive from a peer with a bug or a hand-edited blob).
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: nil, targetPoints: nil, t: 1),
+            // "deciding_tb" record missing targetPoints.
+            PointEventRecord(type: PointEventRecord.decidingTiebreakType, isPlayerA: nil, targetPoints: nil, t: 2)
+        ]
+
+        XCTAssertEqual(PointEventRecord.toMatchEvents(records), [])
+    }
+
+    // ---- ActiveMatchSessionStore ----
+
+    func testActiveMatchSessionStoreRoundTripsSavedBlob() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 42)],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .grandSlam,
+            initialServerIsPlayerA: false,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+
+        let blob = ActiveMatchSessionStore.read(defaults: defaults)
+        XCTAssertEqual(blob?.playerAName, "Ana")
+        XCTAssertEqual(blob?.playerBName, "Beto")
+        XCTAssertEqual(blob?.format, .grandSlam)
+        XCTAssertEqual(blob?.initialServerIsPlayerA, false)
+        XCTAssertEqual(blob?.pointEvents.first?.isPlayerA, true)
+        XCTAssertEqual(blob?.lastMode, PlayMode.match.rawValue)
+    }
+
+    func testActiveMatchSessionStoreReadIsNilWhenNothingSaved() throws {
+        let defaults = try makeIsolatedDefaults()
+        XCTAssertNil(ActiveMatchSessionStore.read(defaults: defaults))
+    }
+
+    func testActiveMatchSessionStoreClearRemovesSavedBlob() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [],
+            playerAName: "A",
+            playerBName: "B",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+        XCTAssertNotNil(ActiveMatchSessionStore.read(defaults: defaults))
+
+        ActiveMatchSessionStore.clear(defaults: defaults)
+
+        XCTAssertNil(ActiveMatchSessionStore.read(defaults: defaults))
+    }
+
+    private func makeIsolatedDefaults() throws -> UserDefaults {
+        let suiteName = "ActiveMatchSessionStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suiteName) }
+        return defaults
+    }
+
     private func scoreToTiedSets(setsEach: Int, format: MatchFormat = .standard) -> MatchSnapshot {
         var score = MatchSnapshot(format: format)
         for _ in 0..<setsEach {
