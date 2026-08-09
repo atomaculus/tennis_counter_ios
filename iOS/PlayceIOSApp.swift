@@ -294,6 +294,9 @@ struct CounterTabView: View {
                     onSave: {
                         historyStore.upsert(controller.finishMatchRecord(source: "iPhone"))
                     },
+                    buildShareRecord: {
+                        controller.finishMatchRecord(source: "iPhone")
+                    },
                     onNewMatch: {
                         controller.resetMatch()
                         decidingTiebreakDeclined = false
@@ -1043,9 +1046,11 @@ struct MobileMatchFinishedContent: View {
     let summary: MobileFinishedSummary
     let isPremiumUnlocked: Bool
     let onSave: () -> Void
+    let buildShareRecord: () -> FinishedMatchRecord
     let onNewMatch: () -> Void
 
     @State private var saved = false
+    @State private var editorRecord: FinishedMatchRecord?
 
     var body: some View {
         ScrollView {
@@ -1098,12 +1103,24 @@ struct MobileMatchFinishedContent: View {
                             .foregroundStyle(PlaycePalette.textSecondary)
                             .multilineTextAlignment(.center)
                     }
+                    PlayceButton("Customize & share", style: .outline) {
+                        editorRecord = buildShareRecord()
+                    }
                     PlayceButton("New Match", style: .danger, action: onNewMatch)
                 }
             }
             .padding(16)
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+        .sheet(item: $editorRecord) { record in
+            ShareCardEditorView(
+                data: MatchShareCardData(record: record),
+                photoURL: nil,
+                matchID: record.id,
+                initialPlayerAName: record.playerAName,
+                initialPlayerBName: record.playerBName
+            )
+        }
     }
 
     private var saveButtonTitle: String {
