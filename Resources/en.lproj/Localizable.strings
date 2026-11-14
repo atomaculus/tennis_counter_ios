@@ -183,6 +183,7 @@
 "See your score with your wrist down. Hold now asks to confirm before undo." = "See your score with your wrist down. Hold now asks to confirm before undo.";
 "%d min" = "%d min";
 "Wall" = "Wall";
+/* Debug-only Paredón stub. Release builds do not show this screen. */
 "Wall mode is coming soon — the watch will count your hits." = "Wall mode is coming soon — the watch will count your hits.";
 "STREAK" = "STREAK";
 "ATTEMPTS" = "ATTEMPTS";

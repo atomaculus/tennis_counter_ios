@@ -87,12 +87,28 @@ final class TrainingHistoryStore: ObservableObject {
     }
 }
 
-/// The three things a user can do from the on-device mode selector, shared by
-/// the watchOS `ModeSelectView` and the iOS "Play" tab's selection screen.
+/// What the on-device mode selector can offer, shared by the watchOS
+/// `ModeSelectView` and the iOS "Play" tab. `.wall` (Paredón) stays in the
+/// model for the training store, but Release builds do not offer it.
 enum PlayMode: String, Codable, CaseIterable {
     case match
     case wall
     case veintiuno
+
+    /// Paredón is still a "coming soon" stub. App Review rejects placeholder
+    /// features (Guidelines 2.1 and 2.2), so Release builds omit it from the
+    /// selector. Debug builds keep the stub reachable. The stub screens are
+    /// compiled only in DEBUG (`WallStubView`, `ParedonStubWatchView`), and
+    /// the switch that presents them is `#if DEBUG` as well. To ship the real
+    /// wall counter, drop those `#if DEBUG` gates and return `true` here in
+    /// Release too.
+    static var isWallStubAvailable: Bool {
+        #if DEBUG
+        true
+        #else
+        false
+        #endif
+    }
 }
 
 /// Remembers the last mode picked from the selector, per device (each of
@@ -105,10 +121,16 @@ enum PlayModePrefs {
         guard let raw = defaults.string(forKey: lastModeKey), let mode = PlayMode(rawValue: raw) else {
             return .match
         }
+        // A Debug session may have stored `.wall`. Release must not highlight
+        // or reopen a mode the selector does not show.
+        if mode == .wall, !PlayMode.isWallStubAvailable {
+            return .match
+        }
         return mode
     }
 
     static func setLastMode(_ mode: PlayMode, defaults: UserDefaults = .standard) {
-        defaults.set(mode.rawValue, forKey: lastModeKey)
+        let stored: PlayMode = (mode == .wall && !PlayMode.isWallStubAvailable) ? .match : mode
+        defaults.set(stored.rawValue, forKey: lastModeKey)
     }
 }

@@ -183,6 +183,7 @@
 "See your score with your wrist down. Hold now asks to confirm before undo." = "Vas a ver el marcador aunque tengas la muñeca baja. Mantener presionado ahora pide confirmación para deshacer.";
 "%d min" = "%d min";
 "Wall" = "Paredón";
+/* Stub de Paredón, solo Debug. Los builds Release no muestran esta pantalla. */
 "Wall mode is coming soon — the watch will count your hits." = "Paredón llega pronto — el reloj va a contar tus golpes.";
 "STREAK" = "RACHA";
 "ATTEMPTS" = "INTENTOS";

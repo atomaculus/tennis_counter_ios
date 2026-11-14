@@ -34,6 +34,22 @@ final class TrainingHistoryStoreTests: XCTestCase {
         XCTAssertEqual(store.sessions.map(\.id), [newer.id, older.id])
     }
 
+    func testLastModeHidesWallWhenTheStubIsUnavailable() {
+        let suite = "playce.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        PlayModePrefs.setLastMode(.veintiuno, defaults: defaults)
+        XCTAssertEqual(PlayModePrefs.lastMode(defaults: defaults), .veintiuno)
+
+        PlayModePrefs.setLastMode(.wall, defaults: defaults)
+        if PlayMode.isWallStubAvailable {
+            XCTAssertEqual(PlayModePrefs.lastMode(defaults: defaults), .wall)
+        } else {
+            XCTAssertEqual(PlayModePrefs.lastMode(defaults: defaults), .match)
+        }
+    }
+
     func testAppendCapsStoredSessionsAtTwoHundred() {
         let store = TrainingHistoryStore(storageURL: temporaryStorageURL())
         for i in 0..<205 {

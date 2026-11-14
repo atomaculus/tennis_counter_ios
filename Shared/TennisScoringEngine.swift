@@ -396,6 +396,9 @@ final class ScoreboardController: ObservableObject {
         guard pointHistory.isEmpty, finishedSummary == nil else { return }
         state.initialServerIsPlayerA = isPlayerA
         baseline.initialServerIsPlayerA = isPlayerA
+        // Setup applies the server after names and format, and those earlier
+        // saves would otherwise keep the previous server in the session blob.
+        persistActiveSession()
     }
 
     func resetGame() {

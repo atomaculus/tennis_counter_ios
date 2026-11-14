@@ -295,7 +295,11 @@ struct PlayTabRootView: View {
             case .veintiuno:
                 VeintiunoCounterView(onExit: { mode = nil })
             case .wall:
+                #if DEBUG
                 WallStubView(onBack: { mode = nil })
+                #else
+                PlaySelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
+                #endif
             case nil:
                 PlaySelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
             }
@@ -322,14 +326,16 @@ struct PlayTabRootView: View {
     }
 
     private func selectMode(_ selected: PlayMode) {
+        guard PlayMode.isWallStubAvailable || selected != .wall else { return }
         PlayModePrefs.setLastMode(selected)
         mode = selected
     }
 }
 
-/// Mode picker for the "Play" tab: Match / Wall / 21, mirroring the watchOS
+/// Mode picker for the "Play" tab: Match and 21, mirroring the watchOS
 /// `ModeSelectView`. Match is the visually primary option; the last-used
-/// mode (see `PlayModePrefs`) gets a subtle highlight.
+/// mode (see `PlayModePrefs`) gets a subtle highlight. Paredón is included
+/// only when `PlayMode.isWallStubAvailable` (Debug).
 struct PlaySelectView: View {
     let lastMode: PlayMode
     let onSelect: (PlayMode) -> Void
@@ -339,7 +345,9 @@ struct PlaySelectView: View {
             WordmarkView()
             PlayceButton("Match", style: .solid) { onSelect(.match) }
             HStack(spacing: 12) {
-                modeCard(.wall, title: "Wall")
+                if PlayMode.isWallStubAvailable {
+                    modeCard(.wall, title: "Wall")
+                }
                 modeCard(.veintiuno, title: LocalizedStringKey("21"))
             }
             Spacer()
@@ -448,8 +456,10 @@ struct VeintiunoCounterView: View {
     }
 }
 
+#if DEBUG
 /// iPhone placeholder for the paredón (wall-practice) mode; mirrors the
-/// watchOS `ParedonStubWatchView`.
+/// watchOS `ParedonStubWatchView`. Compiled only in Debug so Release builds
+/// do not ship the "coming soon" screen (see `PlayMode.isWallStubAvailable`).
 struct WallStubView: View {
     let onBack: () -> Void
 
@@ -468,6 +478,7 @@ struct WallStubView: View {
         .navigationTitle("Wall")
     }
 }
+#endif
 
 struct CounterTabView: View {
     @ObservedObject var controller: ScoreboardController

@@ -35,7 +35,6 @@ struct WatchRootView: View {
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
     @EnvironmentObject private var workoutManager: WorkoutSessionManager
     @EnvironmentObject private var historyStore: MatchHistoryStore
-    @EnvironmentObject private var trainingHistoryStore: TrainingHistoryStore
     /// True when the wrist is down / the display is in Always-On low-power
     /// mode. Drives the simplified, button-less scoreboard in `liveCounter`.
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -79,7 +78,11 @@ struct WatchRootView: View {
             case .veintiuno:
                 VeintiunoWatchView(onExit: { mode = nil })
             case .wall:
+                #if DEBUG
                 ParedonStubWatchView(onBack: { mode = nil })
+                #else
+                ModeSelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
+                #endif
             case nil:
                 ModeSelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
             }
@@ -175,6 +178,7 @@ struct WatchRootView: View {
     }
 
     private func selectMode(_ selected: PlayMode) {
+        guard PlayMode.isWallStubAvailable || selected != .wall else { return }
         PlayModePrefs.setLastMode(selected)
         mode = selected
     }
@@ -599,10 +603,10 @@ private func sharedSmallButton(_ title: LocalizedStringKey, danger: Bool = false
     .buttonStyle(.plain)
 }
 
-/// Cold-start / "back" screen offering the three things you can do on the
-/// watch: score a match, practice against a wall, or count to 21. Match is
-/// always the visually primary option (large, accented); whichever mode was
-/// last picked (see `PlayModePrefs`) gets a subtle highlight so a returning
+/// Cold-start / "back" screen: score a match, or count to 21. Paredón is
+/// listed only when `PlayMode.isWallStubAvailable` (Debug). Match is always
+/// the visually primary option (large, accented); whichever mode was last
+/// picked (see `PlayModePrefs`) gets a subtle highlight so a returning
 /// player lands back where they left off with one fewer tap. No `ScrollView`:
 /// long-press elsewhere in this app means undo, so scroll gestures would
 /// conflict (see `WatchRootView`'s `liveCounter`) — same constraint here.
@@ -620,7 +624,9 @@ private struct ModeSelectView: View {
             modeButton(.match, title: "Match", isPrimary: true)
 
             HStack(spacing: 8) {
-                modeButton(.wall, title: "Wall", isPrimary: false)
+                if PlayMode.isWallStubAvailable {
+                    modeButton(.wall, title: "Wall", isPrimary: false)
+                }
                 modeButton(.veintiuno, title: LocalizedStringKey("21"), isPrimary: false)
             }
         }
@@ -759,9 +765,11 @@ private struct VeintiunoWatchView: View {
     }
 }
 
+#if DEBUG
 /// Placeholder for the paredón (wall-practice) mode: swing/hit-count
 /// detection isn't implemented yet, so this just explains what's coming and
-/// lets the user return to the picker.
+/// lets the user return to the picker. Debug-only; Release does not compile
+/// this screen (see `PlayMode.isWallStubAvailable`).
 private struct ParedonStubWatchView: View {
     let onBack: () -> Void
 
@@ -784,6 +792,7 @@ private struct ParedonStubWatchView: View {
         .background(Color.black.ignoresSafeArea())
     }
 }
+#endif
 
 /// Big round point button: tap scores a point, long-press undoes the last
 /// point for that player (mirrors the Wear OS sibling app's gesture pattern).

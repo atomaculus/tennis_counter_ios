@@ -4,8 +4,9 @@ Este documento deja lista la preparacion inicial para publicar PLAYCE iOS/watchO
 
 ## Estado actual
 
-- Version local: `MARKETING_VERSION = 1.0.3`.
-- Build local: `CURRENT_PROJECT_VERSION = 6`.
+- Version local: `MARKETING_VERSION = 1.1.0`.
+- Build local: `CURRENT_PROJECT_VERSION = 7`.
+- `1.1.0 (7)` trae el modo 21 en iPhone y Apple Watch y deja el stub de Paredón fuera del selector en Release (`PlayMode.isWallStubAvailable`, solo DEBUG). Esta preparacion no se compilo en el entorno del cambio (sin Xcode); correr el preflight de abajo en la Mac antes de archivar.
 - Apple Developer Team: `Atilio Maculus`.
 - Team ID: `63U9A75L6R`.
 - App Store Connect app name: `PLAYCE Tennis & Padel`.
