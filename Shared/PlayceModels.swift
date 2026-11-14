@@ -499,16 +499,12 @@ struct WhatsNewEntry: Hashable {
 /// and replace `entries` whenever a new change needs surfacing to existing
 /// users; only the entries for the current version are ever shown.
 enum WhatsNewContent {
-    static let currentVersion = 2
+    static let currentVersion = 3
 
     static let entries: [WhatsNewEntry] = [
         WhatsNewEntry(
-            title: "Always-on scoreboard",
-            description: "The watch keeps your match on screen during the workout, with a simplified scoreboard when you lower your wrist."
-        ),
-        WhatsNewEntry(
-            title: "Safer undo",
-            description: "Press and hold now asks for confirmation before undoing the point."
+            title: "21 training mode",
+            description: "Count to 21 on iPhone and Apple Watch."
         )
     ]
 }

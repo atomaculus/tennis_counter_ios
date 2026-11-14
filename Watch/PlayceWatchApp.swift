@@ -843,7 +843,7 @@ private struct PointButton: View {
 }
 
 /// Single-screen "what's new" overlay shown once on the Watch after an update
-/// that changed the on-watch gestures (see `WhatsNewPrefs`).
+/// (see `WhatsNewPrefs`). Uses the same entry as the iPhone sheet.
 private struct WhatsNewWatchView: View {
     let onDismiss: () -> Void
 
@@ -854,14 +854,16 @@ private struct WhatsNewWatchView: View {
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color(red: 0.72, green: 1.0, blue: 0.17))
                     .textCase(.uppercase)
-                Text("Match stays visible")
-                    .font(.headline.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.white)
-                Text("See your score with your wrist down. Hold now asks to confirm before undo.")
-                    .font(.footnote)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.gray)
+                if let entry = WhatsNewContent.entries.first {
+                    Text(LocalizedStringKey(entry.title))
+                        .font(.headline.weight(.bold))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.white)
+                    Text(LocalizedStringKey(entry.description))
+                        .font(.footnote)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.gray)
+                }
                 Button(action: onDismiss) {
                     Text("OK")
                         .font(.system(size: 14, weight: .bold))

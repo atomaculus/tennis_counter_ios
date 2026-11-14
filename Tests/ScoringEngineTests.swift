@@ -449,6 +449,77 @@ final class ScoringEngineTests: XCTestCase {
         XCTAssertEqual(blob?.initialServerIsPlayerA, false)
         XCTAssertEqual(blob?.pointEvents.first?.isPlayerA, true)
         XCTAssertEqual(blob?.lastMode, PlayMode.match.rawValue)
+        XCTAssertNil(blob?.baseline)
+        XCTAssertNil(blob?.elapsedSeconds)
+    }
+
+    func testActiveMatchSessionStoreKeepsResetBaselineInsteadOfOldPoints() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 1)],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+
+        var baseline = MatchSnapshot(format: .standard, initialServerIsPlayerA: true)
+        baseline.playerA.games = 3
+        baseline.playerB.games = 2
+        baseline.playerA.sets = 1
+        ActiveMatchSessionStore.save(
+            pointEvents: [],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            baseline: baseline,
+            elapsedSeconds: 95,
+            isTimerRunning: true,
+            hasTimerStarted: true,
+            defaults: defaults
+        )
+
+        let blob = try XCTUnwrap(ActiveMatchSessionStore.read(defaults: defaults))
+        XCTAssertTrue(blob.pointEvents.isEmpty)
+        XCTAssertEqual(blob.baseline?.playerA.games, 3)
+        XCTAssertEqual(blob.baseline?.playerB.games, 2)
+        XCTAssertEqual(blob.baseline?.playerA.sets, 1)
+        XCTAssertEqual(blob.baseline?.playerA.points, 0)
+        XCTAssertEqual(blob.elapsedSeconds, 95)
+        XCTAssertEqual(blob.isTimerRunning, true)
+        XCTAssertEqual(blob.hasTimerStarted, true)
+    }
+
+    func testActiveMatchSessionStoreDecodesLegacyBlobWithoutBaselineOrTimer() throws {
+        let defaults = try makeIsolatedDefaults()
+        let legacy: [String: Any] = [
+            "pointEvents": [],
+            "playerAName": "Ana",
+            "playerBName": "Beto",
+            "format": [
+                "setsToWin": 2,
+                "tiebreakAtSixAll": true,
+                "tiebreakPoints": 7,
+                "superTiebreakInFinalSet": false,
+                "noAdScoring": false
+            ],
+            "initialServerIsPlayerA": true,
+            "updatedAt": Date().timeIntervalSinceReferenceDate,
+            "lastMode": "match"
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        defaults.set(data, forKey: "playce.activeMatchSession")
+
+        let blob = try XCTUnwrap(ActiveMatchSessionStore.read(defaults: defaults))
+        XCTAssertEqual(blob.playerAName, "Ana")
+        XCTAssertNil(blob.baseline)
+        XCTAssertNil(blob.elapsedSeconds)
+        XCTAssertNil(blob.isTimerRunning)
+        XCTAssertNil(blob.hasTimerStarted)
     }
 
     func testActiveMatchSessionStoreReadIsNilWhenNothingSaved() throws {

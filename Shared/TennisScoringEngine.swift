@@ -244,6 +244,14 @@ struct ActiveMatchSessionBlob: Codable {
     var initialServerIsPlayerA: Bool
     var updatedAt: Date
     var lastMode: String
+    /// Score before `pointEvents` (a fresh match, or the board after Reset Game).
+    /// Nil on sessions saved before this field existed; those still replay events
+    /// from 0-0. Optional so older blobs decode.
+    var baseline: MatchSnapshot? = nil
+    /// Nil on sessions saved before the timer was persisted.
+    var elapsedSeconds: Int? = nil
+    var isTimerRunning: Bool? = nil
+    var hasTimerStarted: Bool? = nil
 }
 
 /// Device-local (UserDefaults) persistence for the in-progress match. Purely
@@ -267,6 +275,10 @@ enum ActiveMatchSessionStore {
         format: MatchFormat,
         initialServerIsPlayerA: Bool,
         lastMode: String,
+        baseline: MatchSnapshot? = nil,
+        elapsedSeconds: Int? = nil,
+        isTimerRunning: Bool? = nil,
+        hasTimerStarted: Bool? = nil,
         defaults: UserDefaults = .standard
     ) {
         let blob = ActiveMatchSessionBlob(
@@ -276,7 +288,11 @@ enum ActiveMatchSessionStore {
             format: format,
             initialServerIsPlayerA: initialServerIsPlayerA,
             updatedAt: Date(),
-            lastMode: lastMode
+            lastMode: lastMode,
+            baseline: baseline,
+            elapsedSeconds: elapsedSeconds,
+            isTimerRunning: isTimerRunning,
+            hasTimerStarted: hasTimerStarted
         )
         guard let data = try? encoder.encode(blob) else { return }
         defaults.set(data, forKey: key)
@@ -380,12 +396,27 @@ final class ScoreboardController: ObservableObject {
 
         let events = PointEventRecord.toMatchEvents(blob.pointEvents)
         pointHistory = events
-        baseline = MatchSnapshot(format: blob.format, initialServerIsPlayerA: blob.initialServerIsPlayerA)
-        state = ScoringEngine.replayEvents(
-            events,
+        // Reset Game keeps sets and games on `baseline` and drops point history.
+        // Replaying events from 0-0 would bring those points back and lose the sets.
+        baseline = blob.baseline ?? MatchSnapshot(
             format: blob.format,
             initialServerIsPlayerA: blob.initialServerIsPlayerA
         )
+        let elapsed = blob.elapsedSeconds ?? 0
+        elapsedBase = elapsed
+        timerAnchor = Date()
+        var rebuilt = baseline
+        rebuilt.elapsedSeconds = elapsed
+        rebuilt.isTimerRunning = blob.isTimerRunning ?? false
+        rebuilt.hasTimerStarted = blob.hasTimerStarted ?? false
+        state = pointHistory.reduce(rebuilt) { score, event in
+            switch event {
+            case .point(let isPlayerA, _):
+                return ScoringEngine.scorePoint(score, isPlayerA: isPlayerA)
+            case .decidingTiebreakStarted(let targetPoints, _):
+                return ScoringEngine.startDecidingTiebreak(score, targetPoints: targetPoints)
+            }
+        }
         playerAName = Self.normalizedPlayerName(blob.playerAName, fallback: "Player A")
         playerBName = Self.normalizedPlayerName(blob.playerBName, fallback: "Player B")
         didRestoreActiveMatch = true
@@ -412,6 +443,9 @@ final class ScoreboardController: ObservableObject {
         state.playerB.points = 0
         state.isTiebreak = false
         state.decidingTiebreakTarget = nil
+        // History is empty and the remaining score lives on `baseline`. Persist
+        // that, or the next launch replays the pre-reset points.
+        persistActiveSession()
     }
 
     func resetMatch() {
@@ -452,6 +486,7 @@ final class ScoreboardController: ObservableObject {
             state.isTimerRunning = true
             state.hasTimerStarted = true
         }
+        persistActiveSession()
     }
 
     func finishMatch() {
@@ -535,13 +570,18 @@ final class ScoreboardController: ObservableObject {
         let elapsed = elapsedBase + Int(Date().timeIntervalSince(timerAnchor))
         if elapsed != state.elapsedSeconds {
             state.elapsedSeconds = elapsed
+            persistActiveSession()
         }
     }
 
     /// Writes the current match to `ActiveMatchSessionStore` so a relaunch
-    /// can resume it (see `restoreIfAvailable()`). Cheap enough to call after
-    /// every mutation: encodes a handful of small `PointEventRecord`s to
-    /// `UserDefaults`, no disk I/O of its own.
+    /// can resume it (see `restoreIfAvailable()`). Also called once a second
+    /// while the match timer is running, so the saved elapsed time stays current.
+    private func currentElapsedSeconds() -> Int {
+        guard state.isTimerRunning else { return state.elapsedSeconds }
+        return elapsedBase + Int(Date().timeIntervalSince(timerAnchor))
+    }
+
     private func persistActiveSession() {
         ActiveMatchSessionStore.save(
             pointEvents: PointEventRecord.from(pointHistory),
@@ -549,7 +589,11 @@ final class ScoreboardController: ObservableObject {
             playerBName: playerBName,
             format: state.format,
             initialServerIsPlayerA: state.initialServerIsPlayerA,
-            lastMode: PlayMode.match.rawValue
+            lastMode: PlayMode.match.rawValue,
+            baseline: baseline,
+            elapsedSeconds: currentElapsedSeconds(),
+            isTimerRunning: state.isTimerRunning,
+            hasTimerStarted: state.hasTimerStarted
         )
     }
 
