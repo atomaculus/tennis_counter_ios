@@ -135,6 +135,52 @@ struct MobileFinishedSummary: Hashable {
     var playerBName: String
 }
 
+/// A single scored point or deciding-tiebreak-start event, as persisted with a
+/// finished match. Mirrors `ScoringEngine.MatchEvent` but flattened for Codable
+/// storage (Swift does not allow default values on enum associated values).
+struct PointEventRecord: Codable, Hashable {
+    let type: String        // "point" | "deciding_tb"
+    let isPlayerA: Bool?    // only for type == "point"
+    let targetPoints: Int?  // only for type == "deciding_tb"
+    let t: Int64            // epoch millis; 0 = unknown
+
+    static let pointType = "point"
+    static let decidingTiebreakType = "deciding_tb"
+
+    /// Maps engine-level match events to their persisted representation.
+    static func from(_ events: [ScoringEngine.MatchEvent]) -> [PointEventRecord] {
+        events.map { event in
+            switch event {
+            case .point(let isPlayerA, let timestampMillis):
+                return PointEventRecord(type: pointType, isPlayerA: isPlayerA, targetPoints: nil, t: timestampMillis)
+            case .decidingTiebreakStarted(let targetPoints, let timestampMillis):
+                return PointEventRecord(type: decidingTiebreakType, isPlayerA: nil, targetPoints: targetPoints, t: timestampMillis)
+            }
+        }
+    }
+
+    /// Inverse of `from(_:)`: rebuilds engine-level match events from their
+    /// persisted representation, e.g. to feed `ScoringEngine.replayEvents`.
+    /// Records with an unrecognized `type`, or missing the field their type
+    /// requires (`isPlayerA` for `.point`, `targetPoints` for `.decidingTb`),
+    /// are skipped rather than crashing, so a record written by a future app
+    /// version with an unknown event kind is silently ignored today.
+    static func toMatchEvents(_ records: [PointEventRecord]) -> [ScoringEngine.MatchEvent] {
+        records.compactMap { record -> ScoringEngine.MatchEvent? in
+            switch record.type {
+            case pointType:
+                guard let isPlayerA = record.isPlayerA else { return nil }
+                return .point(isPlayerA: isPlayerA, timestampMillis: record.t)
+            case decidingTiebreakType:
+                guard let targetPoints = record.targetPoints else { return nil }
+                return .decidingTiebreakStarted(targetPoints: targetPoints, timestampMillis: record.t)
+            default:
+                return nil
+            }
+        }
+    }
+}
+
 struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var id: UUID = UUID()
     var createdAt: Date
@@ -152,6 +198,9 @@ struct FinishedMatchRecord: Codable, Hashable, Identifiable {
     var caloriesKcal: Double? = nil
     var avgHeartRateBpm: Double? = nil
     var maxHeartRateBpm: Double? = nil
+    // Full per-point history, added in N1. Records saved before this field
+    // existed (or synced from a peer that predates it) decode this as nil.
+    var pointEvents: [PointEventRecord]? = nil
 }
 
 struct MatchHistoryArchive: Codable, Hashable {
@@ -450,20 +499,12 @@ struct WhatsNewEntry: Hashable {
 /// and replace `entries` whenever a new change needs surfacing to existing
 /// users; only the entries for the current version are ever shown.
 enum WhatsNewContent {
-    static let currentVersion = 1
+    static let currentVersion = 3
 
     static let entries: [WhatsNewEntry] = [
         WhatsNewEntry(
-            title: "New watch controls",
-            description: "Tap the score button to add a point. Hold it to undo the last point."
-        ),
-        WhatsNewEntry(
-            title: "Choose who serves first",
-            description: "Pick the starting server when setting up a match, from your phone or watch."
-        ),
-        WhatsNewEntry(
-            title: "Deciding tiebreak",
-            description: "When sets are tied, settle the match with a tiebreak instead of a final set."
+            title: "21 training mode",
+            description: "Count to 21 on iPhone and Apple Watch."
         )
     ]
 }
@@ -497,6 +538,18 @@ enum PlayceFormatting {
             return String(format: "%d:%02d:%02d", hours, minutes, remainder)
         }
         return String(format: "%02d:%02d", minutes, remainder)
+    }
+
+    /// Always-on Display variant of `elapsed(_:)`: no seconds, since AOD
+    /// updates at most once a minute. `"h:mm"` once an hour has elapsed,
+    /// otherwise `"m min"` (e.g. 754s -> "12 min", 3900s -> "1:05").
+    static func elapsedNoSeconds(_ seconds: Int) -> String {
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+        if hours > 0 {
+            return String(format: "%d:%02d", hours, minutes)
+        }
+        return String(format: NSLocalizedString("%d min", comment: "Elapsed match time without seconds, always-on display"), minutes)
     }
 
     static func elapsedLong(_ seconds: Int) -> String {

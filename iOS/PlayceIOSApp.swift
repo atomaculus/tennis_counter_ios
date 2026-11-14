@@ -5,6 +5,7 @@ import UIKit
 @main
 struct PlayceIOSApp: App {
     @StateObject private var historyStore = MatchHistoryStore()
+    @StateObject private var trainingHistoryStore = TrainingHistoryStore()
     @StateObject private var premiumStore = PremiumStore()
     @StateObject private var connectivity = ConnectivityCoordinator.shared
     @StateObject private var garminConnectivity = GarminConnectivityCoordinator.shared
@@ -28,6 +29,7 @@ struct PlayceIOSApp: App {
                 }
             }
                 .environmentObject(historyStore)
+                .environmentObject(trainingHistoryStore)
                 .environmentObject(premiumStore)
                 .environmentObject(connectivity)
                 .environmentObject(garminConnectivity)
@@ -51,10 +53,10 @@ struct PhoneRootView: View {
     var body: some View {
         TabView {
             NavigationStack {
-                CounterTabView(controller: localCounter)
+                PlayTabRootView(controller: localCounter)
             }
             .tabItem {
-                Label("Counter", systemImage: "plus.forwardslash.minus")
+                Label("Play", systemImage: "plus.forwardslash.minus")
             }
 
             NavigationStack {
@@ -273,6 +275,211 @@ enum PlayceType {
     static let wordmark = Font.system(size: 22, weight: .black, design: .rounded)
 }
 
+/// Root of the "Play" tab: shows the mode picker (`PlaySelectView`) first,
+/// unless a session is already under way — a local match in progress, or a
+/// live match broadcasting from the Watch — in which case that session wins
+/// and the scoreboard shows immediately (no picker in the way of a match
+/// that's already happening).
+struct PlayTabRootView: View {
+    @ObservedObject var controller: ScoreboardController
+    @EnvironmentObject private var connectivity: ConnectivityCoordinator
+
+    @State private var mode: PlayMode?
+    @State private var hasResolvedInitialMode = false
+
+    var body: some View {
+        Group {
+            switch mode {
+            case .match:
+                CounterTabView(controller: controller)
+            case .veintiuno:
+                VeintiunoCounterView(onExit: { mode = nil })
+            case .wall:
+                #if DEBUG
+                WallStubView(onBack: { mode = nil })
+                #else
+                PlaySelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
+                #endif
+            case nil:
+                PlaySelectView(lastMode: PlayModePrefs.lastMode(), onSelect: selectMode)
+            }
+        }
+        .task {
+            resolveInitialModeIfNeeded()
+        }
+    }
+
+    /// Sessions-in-progress win over the picker: a local match with points
+    /// already on the board (restored from disk or still in memory — the
+    /// same `ActiveMatchSessionStore` the Watch uses, since `restoreIfAvailable()`
+    /// lives on the shared `ScoreboardController`), or the Watch actively
+    /// broadcasting a live match.
+    private func resolveInitialModeIfNeeded() {
+        guard !hasResolvedInitialMode else { return }
+        hasResolvedInitialMode = true
+        let restored = controller.restoreIfAvailable()
+        let hasLocalMatchInProgress = restored || controller.hasActiveMatchInMemory
+        let hasLiveWatchMatch = connectivity.liveMatch?.isMatchActive == true
+        if hasLocalMatchInProgress || hasLiveWatchMatch {
+            mode = .match
+        }
+    }
+
+    private func selectMode(_ selected: PlayMode) {
+        guard PlayMode.isWallStubAvailable || selected != .wall else { return }
+        PlayModePrefs.setLastMode(selected)
+        mode = selected
+    }
+}
+
+/// Mode picker for the "Play" tab: Match and 21, mirroring the watchOS
+/// `ModeSelectView`. Match is the visually primary option; the last-used
+/// mode (see `PlayModePrefs`) gets a subtle highlight. Paredón is included
+/// only when `PlayMode.isWallStubAvailable` (Debug).
+struct PlaySelectView: View {
+    let lastMode: PlayMode
+    let onSelect: (PlayMode) -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            WordmarkView()
+            PlayceButton("Match", style: .solid) { onSelect(.match) }
+            HStack(spacing: 12) {
+                if PlayMode.isWallStubAvailable {
+                    modeCard(.wall, title: "Wall")
+                }
+                modeCard(.veintiuno, title: LocalizedStringKey("21"))
+            }
+            Spacer()
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .navigationTitle("Play")
+    }
+
+    private func modeCard(_ target: PlayMode, title: LocalizedStringKey) -> some View {
+        let isLastUsed = target == lastMode
+        return Button(action: { onSelect(target) }) {
+            Text(title)
+                .font(PlayceType.titleMedium)
+                .foregroundStyle(PlaycePalette.textPrimary)
+                .frame(maxWidth: .infinity, minHeight: 64)
+        }
+        .buttonStyle(.plain)
+        .background(PlaycePalette.surface, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(isLastUsed ? PlaycePalette.accent.opacity(0.7) : PlaycePalette.border, lineWidth: isLastUsed ? 1.5 : 1)
+        )
+    }
+}
+
+/// iPhone version of the free-standing "21" counter (see the watchOS
+/// `VeintiunoWatchView` for the original): tap +1 to build a streak, MISS
+/// resets to zero and logs a failed attempt. Reaching 21 saves the session
+/// to `TrainingHistoryStore` and returns to the mode picker.
+struct VeintiunoCounterView: View {
+    let onExit: () -> Void
+
+    @EnvironmentObject private var trainingHistoryStore: TrainingHistoryStore
+
+    @State private var count = 0
+    @State private var bestStreak = 0
+    @State private var attempts = 0
+    @State private var startedAt = Date()
+    @State private var didFinish = false
+
+    private static let target = 21
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(count >= Self.target ? "21" : "\(count)")
+                .font(PlayceType.scoreHero)
+                .foregroundStyle(count >= Self.target ? PlaycePalette.accent : PlaycePalette.textPrimary)
+
+            HStack(spacing: 12) {
+                StatCard(label: "STREAK", value: "\(bestStreak)", accent: true)
+                StatCard(label: "ATTEMPTS", value: "\(attempts)")
+            }
+
+            PlayceButton("+1", style: .solid, action: addPoint)
+            PlayceButton("MISS", style: .danger, action: miss)
+
+            Spacer()
+
+            PlayceButton("Exit", style: .outline, action: exit)
+        }
+        .padding(24)
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .navigationTitle(LocalizedStringKey("21"))
+    }
+
+    private func addPoint() {
+        guard !didFinish else { return }
+        count += 1
+        bestStreak = max(bestStreak, count)
+        if count >= Self.target {
+            didFinish = true
+            saveSession()
+            onExit()
+        }
+    }
+
+    private func miss() {
+        guard !didFinish else { return }
+        attempts += 1
+        count = 0
+    }
+
+    private func exit() {
+        guard !didFinish else { return }
+        didFinish = true
+        if count > 0 || attempts > 0 || bestStreak > 0 {
+            saveSession()
+        }
+        onExit()
+    }
+
+    private func saveSession() {
+        trainingHistoryStore.append(
+            TrainingSession(
+                modality: TrainingSession.Modality.veintiuno,
+                createdAt: startedAt,
+                durationSeconds: max(0, Int(Date().timeIntervalSince(startedAt))),
+                targetPoints: Self.target,
+                finalCount: count,
+                bestStreak: bestStreak,
+                attempts: attempts
+            )
+        )
+    }
+}
+
+#if DEBUG
+/// iPhone placeholder for the paredón (wall-practice) mode; mirrors the
+/// watchOS `ParedonStubWatchView`. Compiled only in Debug so Release builds
+/// do not ship the "coming soon" screen (see `PlayMode.isWallStubAvailable`).
+struct WallStubView: View {
+    let onBack: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            WordmarkView()
+            Text("Wall mode is coming soon — the watch will count your hits.")
+                .font(PlayceType.body)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(PlaycePalette.textSecondary)
+            PlayceButton("Back", style: .outline, action: onBack)
+            Spacer()
+        }
+        .padding(24)
+        .background(PlaycePalette.background.ignoresSafeArea())
+        .navigationTitle("Wall")
+    }
+}
+#endif
+
 struct CounterTabView: View {
     @ObservedObject var controller: ScoreboardController
     @EnvironmentObject private var connectivity: ConnectivityCoordinator
@@ -293,6 +500,9 @@ struct CounterTabView: View {
                     isPremiumUnlocked: premiumStore.isPremiumUnlocked,
                     onSave: {
                         historyStore.upsert(controller.finishMatchRecord(source: "iPhone"))
+                    },
+                    buildShareRecord: {
+                        controller.finishMatchRecord(source: "iPhone")
                     },
                     onNewMatch: {
                         controller.resetMatch()
@@ -1043,9 +1253,11 @@ struct MobileMatchFinishedContent: View {
     let summary: MobileFinishedSummary
     let isPremiumUnlocked: Bool
     let onSave: () -> Void
+    let buildShareRecord: () -> FinishedMatchRecord
     let onNewMatch: () -> Void
 
     @State private var saved = false
+    @State private var editorRecord: FinishedMatchRecord?
 
     var body: some View {
         ScrollView {
@@ -1098,12 +1310,24 @@ struct MobileMatchFinishedContent: View {
                             .foregroundStyle(PlaycePalette.textSecondary)
                             .multilineTextAlignment(.center)
                     }
+                    PlayceButton("Customize & share", style: .outline) {
+                        editorRecord = buildShareRecord()
+                    }
                     PlayceButton("New Match", style: .danger, action: onNewMatch)
                 }
             }
             .padding(16)
         }
         .background(PlaycePalette.background.ignoresSafeArea())
+        .sheet(item: $editorRecord) { record in
+            ShareCardEditorView(
+                data: MatchShareCardData(record: record),
+                photoURL: nil,
+                matchID: record.id,
+                initialPlayerAName: record.playerAName,
+                initialPlayerBName: record.playerBName
+            )
+        }
     }
 
     private var saveButtonTitle: String {

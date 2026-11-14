@@ -173,3 +173,22 @@
 "OK" = "OK";
 "Point for %@" = "Punto para %@";
 "Double tap and hold to undo the last point" = "Toca dos veces y mantén presionado para deshacer el último punto";
+"Always-on scoreboard" = "El marcador siempre visible";
+"The watch keeps your match on screen during the workout, with a simplified scoreboard when you lower your wrist." = "El reloj mantiene el partido en pantalla durante el workout, con marcador simplificado cuando bajás la muñeca.";
+"Safer undo" = "Deshacer más seguro";
+"Press and hold now asks for confirmation before undoing the point." = "Mantener presionado ahora pide confirmación antes de deshacer el punto.";
+"21 training mode" = "Modo de entrenamiento 21";
+"Count to 21 on iPhone and Apple Watch." = "Contá hasta 21 en el iPhone y en el Apple Watch.";
+"Undo last point?" = "¿Deshacer el último punto?";
+"Undo (%@)" = "Deshacer (%@)";
+"Match stays visible" = "El partido queda visible";
+"See your score with your wrist down. Hold now asks to confirm before undo." = "Vas a ver el marcador aunque tengas la muñeca baja. Mantener presionado ahora pide confirmación para deshacer.";
+"%d min" = "%d min";
+"Wall" = "Paredón";
+/* Stub de Paredón, solo Debug. Los builds Release no muestran esta pantalla. */
+"Wall mode is coming soon — the watch will count your hits." = "Paredón llega pronto — el reloj va a contar tus golpes.";
+"STREAK" = "RACHA";
+"ATTEMPTS" = "INTENTOS";
+"MISS" = "FALLO";
+"Exit" = "Salir";
+"Play" = "Jugar";

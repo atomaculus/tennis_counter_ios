@@ -328,10 +328,10 @@ final class ScoringEngineTests: XCTestCase {
 
     func testReplayEventsRebuildsDecidingTiebreakState() {
         var events: [ScoringEngine.MatchEvent] = []
-        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }  // A wins set 6-0
-        for _ in 0..<24 { events.append(.point(isPlayerA: false)) } // B wins set 6-0
-        events.append(.decidingTiebreakStarted(targetPoints: 10))
-        for _ in 0..<3 { events.append(.point(isPlayerA: true)) }
+        for _ in 0..<24 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }  // A wins set 6-0
+        for _ in 0..<24 { events.append(.point(isPlayerA: false, timestampMillis: 0)) } // B wins set 6-0
+        events.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
+        for _ in 0..<3 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }
 
         let score = ScoringEngine.replayEvents(events)
         XCTAssertTrue(score.isTiebreak)
@@ -342,14 +342,214 @@ final class ScoringEngineTests: XCTestCase {
 
     func testDroppingLastEventUndoesTheDecidingTiebreakChoice() {
         var events: [ScoringEngine.MatchEvent] = []
-        for _ in 0..<24 { events.append(.point(isPlayerA: true)) }
-        for _ in 0..<24 { events.append(.point(isPlayerA: false)) }
-        events.append(.decidingTiebreakStarted(targetPoints: 10))
+        for _ in 0..<24 { events.append(.point(isPlayerA: true, timestampMillis: 0)) }
+        for _ in 0..<24 { events.append(.point(isPlayerA: false, timestampMillis: 0)) }
+        events.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
 
         let undone = ScoringEngine.replayEvents(Array(events.dropLast()))
         XCTAssertFalse(undone.isTiebreak)
         XCTAssertNil(undone.decidingTiebreakTarget)
         XCTAssertTrue(ScoringEngine.canOfferDecidingTiebreak(undone)) // question re-arms
+    }
+
+    func testReplayEventsIgnoresTimestampsWhenComputingScore() {
+        var eventsWithRealTimestamps: [ScoringEngine.MatchEvent] = []
+        var eventsWithZeroTimestamps: [ScoringEngine.MatchEvent] = []
+        var millis: Int64 = 1_700_000_000_000
+        for isPlayerA in [true, true, true, true, false, false, false] {
+            eventsWithRealTimestamps.append(.point(isPlayerA: isPlayerA, timestampMillis: millis))
+            eventsWithZeroTimestamps.append(.point(isPlayerA: isPlayerA, timestampMillis: 0))
+            millis += 1_000
+        }
+        eventsWithRealTimestamps.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: millis))
+        eventsWithZeroTimestamps.append(.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 0))
+
+        let scoreWithRealTimestamps = ScoringEngine.replayEvents(eventsWithRealTimestamps)
+        let scoreWithZeroTimestamps = ScoringEngine.replayEvents(eventsWithZeroTimestamps)
+        XCTAssertEqual(scoreWithRealTimestamps, scoreWithZeroTimestamps)
+    }
+
+    // ---- Event -> PointEventRecord mapping ----
+
+    func testPointEventRecordMappingForPointEvent() {
+        let events: [ScoringEngine.MatchEvent] = [.point(isPlayerA: true, timestampMillis: 1_234)]
+        let records = PointEventRecord.from(events)
+        XCTAssertEqual(records.count, 1)
+        XCTAssertEqual(records[0].type, PointEventRecord.pointType)
+        XCTAssertEqual(records[0].isPlayerA, true)
+        XCTAssertNil(records[0].targetPoints)
+        XCTAssertEqual(records[0].t, 1_234)
+    }
+
+    func testPointEventRecordMappingForDecidingTiebreakEvent() {
+        let events: [ScoringEngine.MatchEvent] = [.decidingTiebreakStarted(targetPoints: 10, timestampMillis: 5_678)]
+        let records = PointEventRecord.from(events)
+        XCTAssertEqual(records.count, 1)
+        XCTAssertEqual(records[0].type, PointEventRecord.decidingTiebreakType)
+        XCTAssertNil(records[0].isPlayerA)
+        XCTAssertEqual(records[0].targetPoints, 10)
+        XCTAssertEqual(records[0].t, 5_678)
+    }
+
+    func testPointEventRecordRoundTripsEventsThroughRecordsAndBack() {
+        let events: [ScoringEngine.MatchEvent] = [
+            .point(isPlayerA: true, timestampMillis: 1_000),
+            .point(isPlayerA: false, timestampMillis: 2_000),
+            .decidingTiebreakStarted(targetPoints: 10, timestampMillis: 3_000),
+            .point(isPlayerA: true, timestampMillis: 4_000)
+        ]
+
+        let records = PointEventRecord.from(events)
+        let rebuilt = PointEventRecord.toMatchEvents(records)
+
+        XCTAssertEqual(rebuilt, events)
+    }
+
+    func testPointEventRecordToMatchEventsIgnoresUnknownTypeInsteadOfCrashing() {
+        let records = [
+            PointEventRecord(type: "future_event_kind", isPlayerA: nil, targetPoints: nil, t: 1),
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 2)
+        ]
+
+        let events = PointEventRecord.toMatchEvents(records)
+
+        XCTAssertEqual(events, [.point(isPlayerA: true, timestampMillis: 2)])
+    }
+
+    func testPointEventRecordToMatchEventsIgnoresMalformedRecords() {
+        let records = [
+            // "point" record missing isPlayerA (would never come from `from(_:)`,
+            // but could arrive from a peer with a bug or a hand-edited blob).
+            PointEventRecord(type: PointEventRecord.pointType, isPlayerA: nil, targetPoints: nil, t: 1),
+            // "deciding_tb" record missing targetPoints.
+            PointEventRecord(type: PointEventRecord.decidingTiebreakType, isPlayerA: nil, targetPoints: nil, t: 2)
+        ]
+
+        XCTAssertEqual(PointEventRecord.toMatchEvents(records), [])
+    }
+
+    // ---- ActiveMatchSessionStore ----
+
+    func testActiveMatchSessionStoreRoundTripsSavedBlob() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 42)],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .grandSlam,
+            initialServerIsPlayerA: false,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+
+        let blob = ActiveMatchSessionStore.read(defaults: defaults)
+        XCTAssertEqual(blob?.playerAName, "Ana")
+        XCTAssertEqual(blob?.playerBName, "Beto")
+        XCTAssertEqual(blob?.format, .grandSlam)
+        XCTAssertEqual(blob?.initialServerIsPlayerA, false)
+        XCTAssertEqual(blob?.pointEvents.first?.isPlayerA, true)
+        XCTAssertEqual(blob?.lastMode, PlayMode.match.rawValue)
+        XCTAssertNil(blob?.baseline)
+        XCTAssertNil(blob?.elapsedSeconds)
+    }
+
+    func testActiveMatchSessionStoreKeepsResetBaselineInsteadOfOldPoints() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [PointEventRecord(type: PointEventRecord.pointType, isPlayerA: true, targetPoints: nil, t: 1)],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+
+        var baseline = MatchSnapshot(format: .standard, initialServerIsPlayerA: true)
+        baseline.playerA.games = 3
+        baseline.playerB.games = 2
+        baseline.playerA.sets = 1
+        ActiveMatchSessionStore.save(
+            pointEvents: [],
+            playerAName: "Ana",
+            playerBName: "Beto",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            baseline: baseline,
+            elapsedSeconds: 95,
+            isTimerRunning: true,
+            hasTimerStarted: true,
+            defaults: defaults
+        )
+
+        let blob = try XCTUnwrap(ActiveMatchSessionStore.read(defaults: defaults))
+        XCTAssertTrue(blob.pointEvents.isEmpty)
+        XCTAssertEqual(blob.baseline?.playerA.games, 3)
+        XCTAssertEqual(blob.baseline?.playerB.games, 2)
+        XCTAssertEqual(blob.baseline?.playerA.sets, 1)
+        XCTAssertEqual(blob.baseline?.playerA.points, 0)
+        XCTAssertEqual(blob.elapsedSeconds, 95)
+        XCTAssertEqual(blob.isTimerRunning, true)
+        XCTAssertEqual(blob.hasTimerStarted, true)
+    }
+
+    func testActiveMatchSessionStoreDecodesLegacyBlobWithoutBaselineOrTimer() throws {
+        let defaults = try makeIsolatedDefaults()
+        let legacy: [String: Any] = [
+            "pointEvents": [],
+            "playerAName": "Ana",
+            "playerBName": "Beto",
+            "format": [
+                "setsToWin": 2,
+                "tiebreakAtSixAll": true,
+                "tiebreakPoints": 7,
+                "superTiebreakInFinalSet": false,
+                "noAdScoring": false
+            ],
+            "initialServerIsPlayerA": true,
+            "updatedAt": Date().timeIntervalSinceReferenceDate,
+            "lastMode": "match"
+        ]
+        let data = try JSONSerialization.data(withJSONObject: legacy)
+        defaults.set(data, forKey: "playce.activeMatchSession")
+
+        let blob = try XCTUnwrap(ActiveMatchSessionStore.read(defaults: defaults))
+        XCTAssertEqual(blob.playerAName, "Ana")
+        XCTAssertNil(blob.baseline)
+        XCTAssertNil(blob.elapsedSeconds)
+        XCTAssertNil(blob.isTimerRunning)
+        XCTAssertNil(blob.hasTimerStarted)
+    }
+
+    func testActiveMatchSessionStoreReadIsNilWhenNothingSaved() throws {
+        let defaults = try makeIsolatedDefaults()
+        XCTAssertNil(ActiveMatchSessionStore.read(defaults: defaults))
+    }
+
+    func testActiveMatchSessionStoreClearRemovesSavedBlob() throws {
+        let defaults = try makeIsolatedDefaults()
+        ActiveMatchSessionStore.save(
+            pointEvents: [],
+            playerAName: "A",
+            playerBName: "B",
+            format: .standard,
+            initialServerIsPlayerA: true,
+            lastMode: PlayMode.match.rawValue,
+            defaults: defaults
+        )
+        XCTAssertNotNil(ActiveMatchSessionStore.read(defaults: defaults))
+
+        ActiveMatchSessionStore.clear(defaults: defaults)
+
+        XCTAssertNil(ActiveMatchSessionStore.read(defaults: defaults))
+    }
+
+    private func makeIsolatedDefaults() throws -> UserDefaults {
+        let suiteName = "ActiveMatchSessionStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        addTeardownBlock { defaults.removePersistentDomain(forName: suiteName) }
+        return defaults
     }
 
     private func scoreToTiedSets(setsEach: Int, format: MatchFormat = .standard) -> MatchSnapshot {
